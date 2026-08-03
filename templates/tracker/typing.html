@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Печать — SportApp{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="eyebrow">test your typing speed</p>
+  <h1>Печать</h1>
+</div>
+
+<div class="glass-card tight">
+  <div class="chip-row" id="duration-chips" style="margin: 0">
+    <div class="chip" data-sec="15">15s</div>
+    <div class="chip active" data-sec="30">30s</div>
+    <div class="chip" data-sec="60">60s</div>
+    <div class="chip" data-sec="120">120s</div>
+  </div>
+</div>
+
+<div class="glass-card" id="type-test-box">
+  <div class="type-live-stats">
+    <div class="item">
+      <div class="value" id="type-time">30</div>
+      <div class="label">Время</div>
+    </div>
+    <div class="item">
+      <div class="value" id="type-wpm">0</div>
+      <div class="label">WPM</div>
+    </div>
+  </div>
+
+  <div class="type-area" id="type-words"></div>
+  <input class="type-hidden-input" id="type-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+
+  <div class="text-center" style="margin-top:14px">
+    <button class="btn btn-ghost btn-sm" id="btn-type-restart">Заново</button>
+  </div>
+</div>
+
+<div class="glass-card text-center" id="type-result-box" style="display:none">
+  <p class="field label" style="margin-bottom:14px">Результат</p>
+  <div class="stat-grid">
+    <div class="stat-tile accent-blue">
+      <div class="value" id="result-wpm">0</div>
+      <div class="label">WPM</div>
+    </div>
+    <div class="stat-tile accent-green">
+      <div class="value" id="result-acc">0%</div>
+      <div class="label">Точность</div>
+    </div>
+    <div class="stat-tile accent-orange">
+      <div class="value" id="result-raw">0</div>
+      <div class="label">Raw WPM</div>
+    </div>
+    <div class="stat-tile accent-purple">
+      <div class="value" id="result-time">0s</div>
+      <div class="label">Время</div>
+    </div>
+  </div>
+  <button class="btn btn-primary btn-block" id="btn-type-again" style="margin-top:16px">Попробовать снова</button>
+</div>
+
+<div class="glass-card">
+  <p class="field label">Статистика MonkeyType</p>
+  <div id="monkeytype-stats-box">
+    {% if monkeytype_connected %}
+      <div class="empty-state"><div class="emoji">⌨️</div><div>Загружаем...</div></div>
+    {% else %}
+      <div class="empty-state">
+        <div class="emoji">🔌</div>
+        <div>ApeKey не настроен на сервере — добавь MONKEYTYPE_APEKEY в .env</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  window.MONKEYTYPE_CONNECTED = {{ monkeytype_connected|yesno:"true,false" }};
+  window.TYPING_STATS_URL = "{% url 'tracker:typing_stats_api' %}";
+</script>
+<script src="{% static 'tracker/js/typing.js' %}"></script>
+{% endblock %}

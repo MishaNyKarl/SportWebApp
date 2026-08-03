@@ -1,4 +1,7 @@
 import json
+import os
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta
 
 from django.contrib import messages
@@ -10,6 +13,8 @@ from django.views.decorators.http import require_POST
 
 from .forms import SetEntryForm, PastSetEntryForm, ExerciseForm, ReminderForm
 from .models import Exercise, WorkoutSession, SetEntry, Reminder
+
+MONKEYTYPE_API = 'https://api.monkeytype.com'
 
 
 def timer_view(request):
@@ -302,3 +307,68 @@ def reminders_api(request):
         for r in Reminder.objects.filter(enabled=True)
     ]
     return JsonResponse({'reminders': data})
+
+
+def typing_view(request):
+    """Тест на скорость печати + статистика реального аккаунта MonkeyType."""
+    return render(request, 'tracker/typing.html', {
+        'active_tab': 'typing',
+        'monkeytype_connected': bool(os.environ.get('MONKEYTYPE_APEKEY')),
+    })
+
+
+def _monkeytype_get(path):
+    """GET-запрос к api.monkeytype.com с ApeKey из окружения. Возвращает (data, error)."""
+    apekey = os.environ.get('MONKEYTYPE_APEKEY')
+    if not apekey:
+        return None, 'MONKEYTYPE_APEKEY не настроен на сервере'
+    req = urllib.request.Request(
+        f'{MONKEYTYPE_API}{path}',
+        headers={
+            'Authorization': f'ApeKey {apekey}',
+            # Cloudflare перед api.monkeytype.com блокирует запросы с дефолтным
+            # User-Agent библиотеки (Python-urllib/...) как бот-трафик.
+            'User-Agent': 'Mozilla/5.0 (compatible; SportWebApp/1.0)',
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            body = json.loads(resp.read().decode('utf-8'))
+            return body.get('data'), None
+    except urllib.error.HTTPError as e:
+        try:
+            body = json.loads(e.read().decode('utf-8'))
+            msg = body.get('message', str(e))
+        except Exception:
+            msg = str(e)
+        return None, msg
+    except Exception as e:
+        return None, str(e)
+
+
+def _best_of(data):
+    """personalBests иногда приходит списком (несколько заходов на тот же режим) — берём лучший по wpm."""
+    if isinstance(data, list):
+        return max(data, key=lambda x: x.get('wpm', 0)) if data else None
+    return data
+
+
+def typing_stats_api(request):
+    """Прокси к личной статистике MonkeyType (сервер хранит ApeKey, фронтенд его не видит)."""
+    stats, err_stats = _monkeytype_get('/users/stats')
+    streak, err_streak = _monkeytype_get('/users/streak')
+    pb60, err_pb60 = _monkeytype_get('/users/personalBests?mode=time&mode2=60')
+    pb30, err_pb30 = _monkeytype_get('/users/personalBests?mode=time&mode2=30')
+
+    errors = [e for e in (err_stats, err_streak, err_pb60, err_pb30) if e]
+
+    return JsonResponse({
+        'ok': stats is not None,
+        'stats': stats,
+        'streak': streak,
+        'personalBests': {
+            'time30': _best_of(pb30),
+            'time60': _best_of(pb60),
+        },
+        'errors': errors,
+    })

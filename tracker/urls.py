@@ -15,4 +15,6 @@ urlpatterns = [
     path('reminders/<int:pk>/delete/', views.delete_reminder, name='delete_reminder'),
     path('api/reminders/', views.reminders_api, name='reminders_api'),
     path('api/workouts/import/', views.import_workout_json, name='import_workout_json'),
+    path('typing/', views.typing_view, name='typing'),
+    path('api/typing/stats/', views.typing_stats_api, name='typing_stats_api'),
 ]
