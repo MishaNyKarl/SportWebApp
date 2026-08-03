@@ -3,9 +3,17 @@
 {% block title %}Счётчик повторений — SportApp{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <p class="eyebrow">Сегодня, {{ session.date|date:"d.m.Y" }}</p>
-  <h1>Счётчик</h1>
+<div class="page-header flex-between">
+  <div>
+    <p class="eyebrow">Сегодня, {{ session.date|date:"d.m.Y" }}</p>
+    <h1>Счётчик</h1>
+  </div>
+  <button class="header-icon-btn" id="btn-open-exercise-modal" type="button" title="Добавить упражнение">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
 </div>
 
 <div class="glass-card center">
@@ -17,14 +25,23 @@
 
   <form method="post" action="{% url 'tracker:counter' %}" id="set-form">
     {% csrf_token %}
-    <datalist id="exercise-list">
-      {% for e in exercises %}<option value="{{ e.name }}">{% endfor %}
-    </datalist>
 
-    <div class="field text-center">
-      {{ form.exercise_name }}
+    {% if recent_exercises %}
+    <div class="field text-left">
+      <label>Недавние</label>
+      <div class="chip-row" id="recent-exercise-chips">
+        {% for e in recent_exercises %}
+          <div class="chip" data-exercise-id="{{ e.pk }}">{{ e.name }}</div>
+        {% endfor %}
+      </div>
     </div>
-    <div class="field" style="display:flex; gap:10px;">
+    {% endif %}
+
+    <div class="field text-left">
+      <label for="{{ form.exercise.id_for_label }}">Упражнение</label>
+      {{ form.exercise }}
+    </div>
+    <div class="field text-left" style="display:flex; gap:10px;">
       <div style="flex:1">
         <label for="{{ form.weight.id_for_label }}">Вес, кг</label>
         {{ form.weight }}
@@ -65,6 +82,28 @@
       <div>Подходов пока нет — добавьте первый</div>
     </div>
   {% endif %}
+</div>
+
+<div class="modal-overlay" id="exercise-modal-overlay">
+  <div class="modal-card glass-card">
+    <div class="flex-between" style="margin-bottom:14px">
+      <strong>Новое упражнение</strong>
+      <button class="icon-btn" id="btn-close-exercise-modal" type="button" title="Закрыть">✕</button>
+    </div>
+    <form method="post" action="{% url 'tracker:add_exercise' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'tracker:counter' %}">
+      <div class="field text-left">
+        <label for="{{ exercise_form.name.id_for_label }}">Название</label>
+        {{ exercise_form.name }}
+      </div>
+      <div class="field text-left">
+        <label for="{{ exercise_form.unit.id_for_label }}">Единица измерения</label>
+        {{ exercise_form.unit }}
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Добавить</button>
+    </form>
+  </div>
 </div>
 {% endblock %}
 

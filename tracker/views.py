@@ -1,13 +1,14 @@
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .forms import SetEntryForm, ReminderForm
+from .forms import SetEntryForm, PastSetEntryForm, ExerciseForm, ReminderForm
 from .models import Exercise, WorkoutSession, SetEntry, Reminder
 
 
@@ -22,6 +23,24 @@ def _get_or_create_today_session():
     return session
 
 
+def _recent_exercises(limit=3):
+    """Последние N уникальных упражнений, использованных в подходах — для быстрого выбора."""
+    seen_ids = []
+    recent = []
+    qs = (
+        SetEntry.objects.exclude(exercise__isnull=True)
+        .select_related('exercise')
+        .order_by('-created_at')[:50]
+    )
+    for entry in qs:
+        if entry.exercise_id not in seen_ids:
+            seen_ids.append(entry.exercise_id)
+            recent.append(entry.exercise)
+        if len(recent) >= limit:
+            break
+    return recent
+
+
 def counter_view(request):
     """Счётчик повторений + сохранение подходов."""
     session = _get_or_create_today_session()
@@ -31,11 +50,6 @@ def counter_view(request):
         if form.is_valid():
             entry = form.save(commit=False)
             entry.session = session
-            name = form.cleaned_data['exercise_name'].strip()
-            if name:
-                exercise, _ = Exercise.objects.get_or_create(name=name)
-                entry.exercise = exercise
-                entry.exercise_name = name
             entry.save()
             messages.success(request, 'Подход сохранён')
             return redirect('tracker:counter')
@@ -48,8 +62,10 @@ def counter_view(request):
     return render(request, 'tracker/counter.html', {
         'active_tab': 'counter',
         'form': form,
+        'exercise_form': ExerciseForm(),
         'today_sets': today_sets,
         'exercises': exercises,
+        'recent_exercises': _recent_exercises(),
         'session': session,
     })
 
@@ -62,9 +78,16 @@ def delete_set(request, pk):
     return redirect('tracker:counter')
 
 
-def clock_view(request):
-    """Часы + секундомер."""
-    return render(request, 'tracker/clock.html', {'active_tab': 'clock'})
+@require_POST
+def add_exercise(request):
+    """Добавление нового упражнения в справочник (модалка по шестерёнке)."""
+    form = ExerciseForm(request.POST)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Упражнение добавлено')
+    else:
+        messages.error(request, 'Не удалось добавить упражнение: проверь название')
+    return redirect(request.POST.get('next') or 'tracker:counter')
 
 
 def stats_view(request):
@@ -115,6 +138,8 @@ def stats_view(request):
         key=lambda x: x[1], reverse=True
     )[:5]
 
+    recent_sessions = sessions.prefetch_related('sets')[:10]
+
     context = {
         'active_tab': 'stats',
         'total_sessions': total_sessions,
@@ -127,8 +152,109 @@ def stats_view(request):
         'weekly_labels_json': json.dumps(weekly_labels),
         'weekly_volume_json': json.dumps(weekly_volume),
         'top_exercise_stats': top_exercise_stats,
+        'recent_sessions': recent_sessions,
+        'exercises': Exercise.objects.all(),
+        'past_entry_form': PastSetEntryForm(initial={'reps': 0, 'weight': 0, 'rest_seconds': 60}),
     }
     return render(request, 'tracker/stats.html', context)
+
+
+@require_POST
+def add_past_entry(request):
+    """Добавление тренировки задним числом (иконка тренировки на странице статистики)."""
+    form = PastSetEntryForm(request.POST)
+    if form.is_valid():
+        session, _ = WorkoutSession.objects.get_or_create(date=form.cleaned_data['date'])
+        entry = form.save(commit=False)
+        entry.session = session
+        entry.save()
+        messages.success(request, f'Тренировка за {form.cleaned_data["date"].strftime("%d.%m.%Y")} добавлена')
+    else:
+        messages.error(request, 'Не удалось добавить тренировку: проверь поля')
+    return redirect('tracker:stats')
+
+
+@csrf_exempt
+@require_POST
+def import_workout_json(request):
+    """
+    JSON-импорт тренировки, например из iOS Shortcuts или скрипта.
+
+    Формат тела запроса:
+    {
+      "date_train": "2026-08-01",
+      "time_start": "18:00",
+      "time_end": "19:00",
+      "note": "необязательно",
+      "exercises": [
+        {"exercise_id": 1, "count": 10, "weight": 40},
+        {"exercise_id": 1, "count": 8, "weight": 42.5},
+        {"exercise_id": 2, "count": 12}
+      ]
+    }
+
+    "count" — число повторений (или другая величина, если у упражнения
+    иная единица измерения — секунды/метры/кг). "weight" необязателен.
+    Одно и то же exercise_id можно указывать несколько раз — каждый
+    объект в "exercises" станет отдельным подходом.
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({'ok': False, 'error': 'Некорректный JSON'}, status=400)
+
+    date_str = payload.get('date_train')
+    if not date_str:
+        return JsonResponse({'ok': False, 'error': 'Поле date_train обязательно'}, status=400)
+    try:
+        date_train = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'date_train должен быть в формате YYYY-MM-DD'}, status=400)
+
+    def _parse_time(value):
+        if not value:
+            return None
+        for fmt in ('%H:%M:%S', '%H:%M'):
+            try:
+                return datetime.strptime(value, fmt).time()
+            except ValueError:
+                continue
+        return None
+
+    exercises_payload = payload.get('exercises') or []
+    if not isinstance(exercises_payload, list) or not exercises_payload:
+        return JsonResponse({'ok': False, 'error': 'Поле exercises должно быть непустым списком'}, status=400)
+
+    session, _ = WorkoutSession.objects.get_or_create(date=date_train)
+    session.time_start = _parse_time(payload.get('time_start')) or session.time_start
+    session.time_end = _parse_time(payload.get('time_end')) or session.time_end
+    if payload.get('note'):
+        session.note = payload['note']
+    session.save()
+
+    created, errors = 0, []
+    for i, item in enumerate(exercises_payload):
+        exercise_id = item.get('exercise_id')
+        exercise = Exercise.objects.filter(pk=exercise_id).first() if exercise_id else None
+        if not exercise:
+            errors.append(f'exercises[{i}]: упражнение с id={exercise_id} не найдено')
+            continue
+        SetEntry.objects.create(
+            session=session,
+            exercise=exercise,
+            exercise_name=exercise.name,
+            reps=int(item.get('count') or 0),
+            weight=float(item.get('weight') or 0),
+            rest_seconds=int(item.get('rest_seconds') or 60),
+        )
+        created += 1
+
+    return JsonResponse({
+        'ok': True,
+        'session_id': session.id,
+        'created_entries': created,
+        'errors': errors,
+    })
 
 
 def reminders_view(request):

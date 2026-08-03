@@ -39,4 +39,39 @@
   }
 
   render();
+
+  // --- Недавние упражнения: клик по чипу выбирает его в select ---
+  var exerciseSelect = document.getElementById("id_exercise");
+  var recentChips = document.getElementById("recent-exercise-chips");
+  if (recentChips && exerciseSelect) {
+    recentChips.addEventListener("click", function (e) {
+      var chip = e.target.closest(".chip");
+      if (!chip) return;
+      exerciseSelect.value = chip.dataset.exerciseId;
+      Array.prototype.forEach.call(recentChips.querySelectorAll(".chip"), function (c) {
+        c.classList.remove("active");
+      });
+      chip.classList.add("active");
+    });
+  }
+
+  // --- Модалка добавления упражнения (шестерёнка) ---
+  var modalOverlay = document.getElementById("exercise-modal-overlay");
+  var btnOpenModal = document.getElementById("btn-open-exercise-modal");
+  var btnCloseModal = document.getElementById("btn-close-exercise-modal");
+  if (modalOverlay && btnOpenModal) {
+    btnOpenModal.addEventListener("click", function () {
+      modalOverlay.classList.add("open");
+    });
+  }
+  if (modalOverlay && btnCloseModal) {
+    btnCloseModal.addEventListener("click", function () {
+      modalOverlay.classList.remove("open");
+    });
+  }
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", function (e) {
+      if (e.target === modalOverlay) modalOverlay.classList.remove("open");
+    });
+  }
 })();

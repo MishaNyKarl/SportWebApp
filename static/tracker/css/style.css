@@ -254,19 +254,6 @@ button { font-family: inherit; }
 .counter-btn.plus { background: var(--accent-green); color: #06210f; }
 .counter-btn.minus { background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: var(--text-primary); }
 
-/* ---------- Часы ---------- */
-.clock-display { text-align: center; padding: 30px 0 10px; }
-.clock-display .big-time {
-  font-size: 64px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
-}
-.clock-display .date { font-size: 16px; color: var(--text-secondary); font-weight: 600; margin-top: 6px; }
-
-.stopwatch-time {
-  font-size: 48px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums;
-  margin: 10px 0 18px;
-}
-.lap-list { max-height: 220px; overflow-y: auto; }
-
 /* ---------- Статистика ---------- */
 .stat-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
@@ -324,6 +311,55 @@ button { font-family: inherit; }
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 
+.header-icon-btn {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--glass-border);
+  background: var(--glass-bg-strong); color: var(--accent-blue);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  flex: none; box-shadow: var(--glass-shadow);
+}
+.header-icon-btn svg { width: 22px; height: 22px; }
+.header-icon-btn:active { transform: scale(0.92); }
+
+/* ---------- Модалка ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(10, 12, 20, 0.42);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease;
+  padding: 0 14px calc(14px + var(--safe-bottom));
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal-card {
+  width: 100%; max-width: 480px; margin-bottom: 0;
+  transform: translateY(16px);
+  transition: transform 0.2s ease;
+}
+.modal-overlay.open .modal-card { transform: translateY(0); }
+
+/* ---------- select как .ios-input ---------- */
+select.ios-input {
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px;
+  padding-right: 40px;
+}
+textarea.ios-input { resize: vertical; font-family: inherit; }
+
+/* ---------- История таймера ---------- */
+.history-list { max-height: 260px; overflow-y: auto; }
+.history-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--glass-border);
+  font-variant-numeric: tabular-nums;
+}
+.history-row:last-child { border-bottom: none; }
+.history-time { color: var(--text-secondary); font-weight: 600; font-size: 14px; }
+.history-sec { font-weight: 700; }
+.history-empty { text-align: center; color: var(--text-secondary); padding: 14px 0; }
+
 /* ---------- Пустое состояние ---------- */
 .empty-state { text-align: center; padding: 30px 10px; color: var(--text-secondary); }
 .empty-state .emoji { font-size: 40px; margin-bottom: 8px; }
@@ -339,6 +375,7 @@ button { font-family: inherit; }
   font-weight: 600;
   font-size: 14px;
 }
+.flash-error { border-left-color: var(--accent-red); }
 
 /* ---------- Нижний таб-бар ---------- */
 .tabbar {
@@ -374,6 +411,7 @@ button { font-family: inherit; }
 
 /* ---------- Утилиты ---------- */
 .text-center { text-align: center; }
+.text-left { text-align: left; }
 .mt-0 { margin-top: 0; }
 .mb-0 { margin-bottom: 0; }
 .muted { color: var(--text-secondary); }

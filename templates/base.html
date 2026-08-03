@@ -17,7 +17,7 @@
   <div class="app">
     {% if messages %}
       {% for message in messages %}
-        <div class="flash">{{ message }}</div>
+        <div class="flash {% if message.tags %}flash-{{ message.tags }}{% endif %}">{{ message }}</div>
       {% endfor %}
     {% endif %}
 
@@ -36,12 +36,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
       </span>
       <span>Счётчик</span>
-    </a>
-    <a class="tab-item {% if active_tab == 'clock' %}active{% endif %}" href="{% url 'tracker:clock' %}">
-      <span class="tab-pill">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
-      </span>
-      <span>Часы</span>
     </a>
     <a class="tab-item {% if active_tab == 'stats' %}active{% endif %}" href="{% url 'tracker:stats' %}">
       <span class="tab-pill">

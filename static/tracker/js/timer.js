@@ -64,6 +64,62 @@
     if (window.Notification && Notification.permission === "granted") {
       new Notification("Отдых окончен", { body: "Пора приступать к следующему подходу" });
     }
+    addHistoryEntry(totalSeconds);
+  }
+
+  // --- История таймеров (хранится в localStorage браузера) ---
+  var HISTORY_KEY = "sportapp_timer_history";
+  var HISTORY_LIMIT = 20;
+  var historyList = document.getElementById("timer-history");
+  var btnClearHistory = document.getElementById("btn-clear-history");
+
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(items) {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+    } catch (e) { /* localStorage недоступен — молча пропускаем */ }
+  }
+
+  function renderHistory() {
+    if (!historyList) return;
+    var items = loadHistory();
+    historyList.innerHTML = "";
+    if (!items.length) {
+      historyList.innerHTML = '<li class="history-empty">Пока нет завершённых отдыхов</li>';
+      return;
+    }
+    items.forEach(function (item) {
+      var li = document.createElement("li");
+      li.className = "history-row";
+      li.innerHTML = '<span class="history-time">' + item.time + '</span>' +
+        '<span class="history-sec">' + formatTime(item.seconds) + '</span>';
+      historyList.appendChild(li);
+    });
+  }
+
+  function addHistoryEntry(seconds) {
+    var items = loadHistory();
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, "0");
+    var mm = String(now.getMinutes()).padStart(2, "0");
+    items.unshift({ time: hh + ":" + mm, seconds: seconds });
+    items = items.slice(0, HISTORY_LIMIT);
+    saveHistory(items);
+    renderHistory();
+  }
+
+  if (btnClearHistory) {
+    btnClearHistory.addEventListener("click", function () {
+      saveHistory([]);
+      renderHistory();
+    });
   }
 
   function tick() {
@@ -147,4 +203,5 @@
   }
 
   updateDisplay();
+  renderHistory();
 })();

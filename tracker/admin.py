@@ -9,13 +9,13 @@ class SetEntryInline(admin.TabularInline):
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ('name', 'created_at')
+    list_display = ('name', 'unit', 'created_at')
     search_fields = ('name',)
 
 
 @admin.register(WorkoutSession)
 class WorkoutSessionAdmin(admin.ModelAdmin):
-    list_display = ('date', 'note', 'total_reps', 'total_volume')
+    list_display = ('date', 'time_start', 'time_end', 'note', 'total_reps', 'total_volume')
     list_filter = ('date',)
     inlines = [SetEntryInline]
 

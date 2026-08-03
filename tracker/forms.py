@@ -1,22 +1,56 @@
 from django import forms
-from .models import SetEntry, Reminder
+from .models import Exercise, SetEntry, Reminder
 
 
 class SetEntryForm(forms.ModelForm):
-    exercise_name = forms.CharField(
-        label='Упражнение', max_length=100,
-        widget=forms.TextInput(attrs={
-            'class': 'ios-input', 'placeholder': 'Например, Жим лёжа', 'list': 'exercise-list', 'autocomplete': 'off',
-        })
+    class Meta:
+        model = SetEntry
+        fields = ['exercise', 'reps', 'weight', 'rest_seconds']
+        widgets = {
+            'exercise': forms.Select(attrs={'class': 'ios-input'}),
+            'reps': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0}),
+            'weight': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': '0.5'}),
+            'rest_seconds': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': 5}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['exercise'].label = 'Упражнение'
+        self.fields['exercise'].empty_label = 'Выбери упражнение'
+        self.fields['exercise'].required = True
+
+
+class PastSetEntryForm(forms.ModelForm):
+    """Та же форма подхода, но с явной датой — для добавления тренировки из прошлого."""
+    date = forms.DateField(
+        label='Дата тренировки',
+        widget=forms.DateInput(attrs={'class': 'ios-input', 'type': 'date'})
     )
 
     class Meta:
         model = SetEntry
-        fields = ['exercise_name', 'reps', 'weight', 'rest_seconds']
+        fields = ['exercise', 'reps', 'weight', 'rest_seconds']
         widgets = {
+            'exercise': forms.Select(attrs={'class': 'ios-input'}),
             'reps': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0}),
             'weight': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': '0.5'}),
             'rest_seconds': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': 5}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['exercise'].label = 'Упражнение'
+        self.fields['exercise'].empty_label = 'Выбери упражнение'
+        self.fields['exercise'].required = True
+
+
+class ExerciseForm(forms.ModelForm):
+    class Meta:
+        model = Exercise
+        fields = ['name', 'unit']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'ios-input', 'placeholder': 'Например, Жим лёжа'}),
+            'unit': forms.Select(attrs={'class': 'ios-input'}),
         }
 
 

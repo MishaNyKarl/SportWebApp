@@ -60,4 +60,59 @@
       },
     });
   }
+
+  // --- Модалка "тренировка из прошлого" ---
+  var modalOverlay = document.getElementById("past-modal-overlay");
+  var btnOpenModal = document.getElementById("btn-open-past-modal");
+  var btnCloseModal = document.getElementById("btn-close-past-modal");
+  if (modalOverlay && btnOpenModal) {
+    btnOpenModal.addEventListener("click", function () {
+      modalOverlay.classList.add("open");
+    });
+  }
+  if (modalOverlay && btnCloseModal) {
+    btnCloseModal.addEventListener("click", function () {
+      modalOverlay.classList.remove("open");
+    });
+  }
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", function (e) {
+      if (e.target === modalOverlay) modalOverlay.classList.remove("open");
+    });
+  }
+
+  // --- Импорт тренировки из JSON ---
+  var btnImport = document.getElementById("btn-json-import");
+  var importInput = document.getElementById("json-import-input");
+  var importResult = document.getElementById("json-import-result");
+  if (btnImport && importInput && window.IMPORT_URL) {
+    btnImport.addEventListener("click", function () {
+      var payload;
+      try {
+        payload = JSON.parse(importInput.value);
+      } catch (e) {
+        importResult.textContent = "Ошибка: некорректный JSON";
+        return;
+      }
+      importResult.textContent = "Импортируем...";
+      fetch(window.IMPORT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
+        .then(function (result) {
+          if (result.data.ok) {
+            importResult.textContent = "Готово: добавлено подходов — " + result.data.created_entries +
+              (result.data.errors.length ? "; ошибки: " + result.data.errors.join(", ") : "");
+            setTimeout(function () { window.location.reload(); }, 1200);
+          } else {
+            importResult.textContent = "Ошибка: " + (result.data.error || "неизвестная");
+          }
+        })
+        .catch(function () {
+          importResult.textContent = "Ошибка сети";
+        });
+    });
+  }
 })();

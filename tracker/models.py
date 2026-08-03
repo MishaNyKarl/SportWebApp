@@ -4,7 +4,15 @@ from django.utils import timezone
 
 class Exercise(models.Model):
     """Упражнение из справочника (пресет для быстрого выбора)."""
+    UNIT_CHOICES = [
+        ('reps', 'повторения'),
+        ('kg', 'кг'),
+        ('sec', 'секунды'),
+        ('m', 'метры'),
+    ]
+
     name = models.CharField('Название', max_length=100, unique=True)
+    unit = models.CharField('Единица измерения', max_length=10, choices=UNIT_CHOICES, default='reps')
     created_at = models.DateTimeField('Создано', auto_now_add=True)
 
     class Meta:
@@ -19,6 +27,8 @@ class Exercise(models.Model):
 class WorkoutSession(models.Model):
     """Тренировочная сессия (один день тренировки)."""
     date = models.DateField('Дата', default=timezone.localdate)
+    time_start = models.TimeField('Начало', null=True, blank=True)
+    time_end = models.TimeField('Окончание', null=True, blank=True)
     note = models.CharField('Заметка', max_length=255, blank=True)
     created_at = models.DateTimeField('Создано', auto_now_add=True)
 
