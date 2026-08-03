@@ -41,6 +41,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'sportapp.urls'
 
+# Позволяет монтировать приложение под префиксом пути (например /sport)
+# за обратным прокси, который сам обрезает префикс перед проксированием.
+FORCE_SCRIPT_NAME = os.environ.get('DJANGO_FORCE_SCRIPT_NAME') or None
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
