@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Статистика — SportApp{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="eyebrow">Твой прогресс</p>
+  <h1>Статистика</h1>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-tile accent-blue">
+    <div class="value">{{ total_sessions }}</div>
+    <div class="label">Тренировок</div>
+  </div>
+  <div class="stat-tile accent-green">
+    <div class="value">{{ total_reps }}</div>
+    <div class="label">Повторений</div>
+  </div>
+  <div class="stat-tile accent-orange">
+    <div class="value">{{ total_volume }}</div>
+    <div class="label">Тоннаж, кг</div>
+  </div>
+  <div class="stat-tile accent-purple">
+    <div class="value">{{ streak }} 🔥</div>
+    <div class="label">Серия дней</div>
+  </div>
+</div>
+
+<div class="glass-card chart-card">
+  <p class="field label">Повторения за 14 дней</p>
+  <canvas id="chart-daily" height="180"></canvas>
+</div>
+
+<div class="glass-card chart-card">
+  <p class="field label">Тоннаж по неделям</p>
+  <canvas id="chart-weekly" height="180"></canvas>
+</div>
+
+<div class="glass-card">
+  <p class="field label">Топ упражнений</p>
+  {% if top_exercise_stats %}
+    {% for name, reps in top_exercise_stats %}
+      <div class="rank-row">
+        <div class="rank-badge">{{ forloop.counter }}</div>
+        <div class="rank-name">{{ name }}</div>
+        <div class="rank-value">{{ reps }} повт.</div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <div class="emoji">📊</div>
+      <div>Пока нет данных — начни тренироваться</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+<script>
+  window.STATS_DATA = {
+    dailyLabels: {{ daily_labels_json|safe }},
+    dailyReps: {{ daily_reps_json|safe }},
+    weeklyLabels: {{ weekly_labels_json|safe }},
+    weeklyVolume: {{ weekly_volume_json|safe }}
+  };
+</script>
+<script src="{% static 'tracker/js/stats.js' %}"></script>
+{% endblock %}

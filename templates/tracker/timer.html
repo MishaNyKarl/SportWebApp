@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Таймер отдыха — SportApp{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="eyebrow">Отдых между подходами</p>
+  <h1>Таймер</h1>
+</div>
+
+<div class="glass-card center">
+  <div class="timer-ring-wrap">
+    <svg viewBox="0 0 260 260">
+      <circle class="timer-ring-bg" cx="130" cy="130" r="110"></circle>
+      <circle id="ring-progress" class="timer-ring-progress" cx="130" cy="130" r="110"></circle>
+    </svg>
+    <div class="timer-center">
+      <div class="time" id="timer-display">01:00</div>
+      <div class="label" id="timer-status">Готов</div>
+    </div>
+  </div>
+
+  <div class="timer-controls">
+    <button class="btn btn-ghost btn-icon" id="btn-minus10" title="-10 сек">−10</button>
+    <button class="btn btn-primary btn-icon" id="btn-start" title="Старт/Пауза">▶</button>
+    <button class="btn btn-ghost btn-icon" id="btn-plus10" title="+10 сек">+10</button>
+  </div>
+
+  <div style="margin-top:14px">
+    <button class="btn btn-ghost btn-sm" id="btn-reset">Сбросить</button>
+  </div>
+</div>
+
+<div class="glass-card tight">
+  <p class="field label" style="margin-bottom:10px">Быстрый выбор, сек</p>
+  <div class="chip-row" id="presets">
+    <div class="chip" data-sec="30">30</div>
+    <div class="chip active" data-sec="60">60</div>
+    <div class="chip" data-sec="90">90</div>
+    <div class="chip" data-sec="120">120</div>
+    <div class="chip" data-sec="180">180</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'tracker/js/timer.js' %}"></script>
+{% endblock %}

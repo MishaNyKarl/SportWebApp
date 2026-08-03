@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Счётчик повторений — SportApp{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="eyebrow">Сегодня, {{ session.date|date:"d.m.Y" }}</p>
+  <h1>Счётчик</h1>
+</div>
+
+<div class="glass-card center">
+  <div class="counter-display">
+    <button class="counter-btn minus" id="btn-dec" type="button">−</button>
+    <div class="counter-value" id="reps-value">0</div>
+    <button class="counter-btn plus" id="btn-inc" type="button">+</button>
+  </div>
+
+  <form method="post" action="{% url 'tracker:counter' %}" id="set-form">
+    {% csrf_token %}
+    <datalist id="exercise-list">
+      {% for e in exercises %}<option value="{{ e.name }}">{% endfor %}
+    </datalist>
+
+    <div class="field text-center">
+      {{ form.exercise_name }}
+    </div>
+    <div class="field" style="display:flex; gap:10px;">
+      <div style="flex:1">
+        <label for="{{ form.weight.id_for_label }}">Вес, кг</label>
+        {{ form.weight }}
+      </div>
+      <div style="flex:1">
+        <label for="{{ form.rest_seconds.id_for_label }}">Отдых, сек</label>
+        {{ form.rest_seconds }}
+      </div>
+    </div>
+    <input type="hidden" name="reps" id="reps-hidden" value="0">
+
+    <button type="submit" class="btn btn-success btn-block">Сохранить подход</button>
+  </form>
+</div>
+
+<div class="glass-card">
+  <div class="flex-between" style="margin-bottom:10px">
+    <strong>Сегодня</strong>
+    <span class="muted">{{ today_sets|length }} подход(ов)</span>
+  </div>
+
+  {% if today_sets %}
+    {% for s in today_sets %}
+      <div class="glass-row">
+        <div>
+          <div style="font-weight:700">{{ s.display_name }}</div>
+          <div class="muted" style="font-size:13px">{{ s.reps }}× · {{ s.weight }} кг · отдых {{ s.rest_seconds }}с</div>
+        </div>
+        <form method="post" action="{% url 'tracker:delete_set' s.pk %}">
+          {% csrf_token %}
+          <button class="icon-btn" title="Удалить">✕</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <div class="emoji">🏋️</div>
+      <div>Подходов пока нет — добавьте первый</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'tracker/js/counter.js' %}"></script>
+{% endblock %}

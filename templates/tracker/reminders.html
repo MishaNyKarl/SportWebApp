@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Напоминания — SportApp{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="eyebrow">Не пропусти тренировку</p>
+  <h1>Напоминания</h1>
+</div>
+
+<div class="glass-card" id="notif-permission-card" style="display:none">
+  <div class="flex-between">
+    <div>
+      <strong>Включить уведомления</strong>
+      <div class="muted" style="font-size:13px">Разреши уведомления в браузере, чтобы получать напоминания</div>
+    </div>
+    <button class="btn btn-primary btn-sm" id="btn-enable-notif">Включить</button>
+  </div>
+</div>
+
+<div class="glass-card">
+  <p class="field label" style="margin-bottom:12px">Новое напоминание</p>
+  <form method="post" action="{% url 'tracker:reminders' %}">
+    {% csrf_token %}
+    <div class="field">
+      <label for="{{ form.title.id_for_label }}">Название</label>
+      {{ form.title }}
+    </div>
+    <div class="field">
+      <label for="{{ form.time.id_for_label }}">Время</label>
+      {{ form.time }}
+    </div>
+    <div class="field">
+      <label>Дни недели</label>
+      <div class="checkbox-days">
+        {% for checkbox in form.days %}
+          <label>{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Добавить напоминание</button>
+  </form>
+</div>
+
+<div class="glass-card">
+  <p class="field label">Список</p>
+  {% if reminders %}
+    {% for r in reminders %}
+      <div class="glass-row reminder-row">
+        <div class="time">{{ r.time|time:"H:i" }}</div>
+        <div class="info">
+          <div class="title">{{ r.title }}</div>
+          <div class="days">{{ r.days_display }}</div>
+        </div>
+        <div class="reminder-actions">
+          <form method="post" action="{% url 'tracker:toggle_reminder' r.pk %}">
+            {% csrf_token %}
+            <label class="switch">
+              <input type="checkbox" onchange="this.form.submit()" {% if r.enabled %}checked{% endif %}>
+              <span class="track"></span>
+            </label>
+          </form>
+          <form method="post" action="{% url 'tracker:delete_reminder' r.pk %}">
+            {% csrf_token %}
+            <button class="icon-btn" title="Удалить">✕</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <div class="emoji">🔔</div>
+      <div>Напоминаний пока нет</div>
+    </div>
+  {% endif %}
+</div>
+
+<p class="muted" style="font-size:12px; text-align:center; padding: 0 8px;">
+  Напоминания срабатывают, пока приложение открыто в браузере. Для push-уведомлений в закрытом
+  приложении нужен домен с HTTPS — добавим на этапе деплоя.
+</p>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'tracker/js/reminders.js' %}"></script>
+{% endblock %}
