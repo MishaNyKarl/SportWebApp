@@ -41,9 +41,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'sportapp.urls'
 
-# Позволяет монтировать приложение под префиксом пути (например /sport)
-# за обратным прокси, который сам обрезает префикс перед проксированием.
-FORCE_SCRIPT_NAME = os.environ.get('DJANGO_FORCE_SCRIPT_NAME') or None
+# Префикс пути для монтирования приложения не в корне домена (например /sport).
+# Прокси должен передавать оригинальный путь как есть, без обрезания префикса —
+# сам префикс встраивается в urlpatterns и STATIC_URL/MEDIA_URL ниже.
+URL_PREFIX = (os.environ.get('DJANGO_FORCE_SCRIPT_NAME') or '').strip('/')
 
 TEMPLATES = [
     {
@@ -100,7 +101,12 @@ USE_I18N = True
 USE_TZ = True
 
 # --- Static / media ---------------------------------------------------------
-STATIC_URL = 'static/'
+if URL_PREFIX:
+    STATIC_URL = f'/{URL_PREFIX}/static/'
+    MEDIA_URL = f'/{URL_PREFIX}/media/'
+else:
+    STATIC_URL = 'static/'
+    MEDIA_URL = 'media/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STORAGES = {
@@ -109,7 +115,6 @@ STORAGES = {
     },
 }
 
-MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
