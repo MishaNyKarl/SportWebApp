@@ -15,7 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN chmod +x deploy/entrypoint.sh
 
-RUN useradd -m appuser && chown -R appuser:appuser /app
+RUN mkdir -p /app/staticfiles /app/media \
+    && useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
