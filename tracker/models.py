@@ -42,15 +42,15 @@ class WorkoutSession(models.Model):
 
     @property
     def total_reps(self):
-        return sum(s.reps for s in self.sets.all())
+        return sum(s.total_reps for s in self.sets.all())
 
     @property
-    def total_volume(self):
-        return sum(s.volume for s in self.sets.all())
+    def total_sets(self):
+        return sum(s.sets_count for s in self.sets.all())
 
 
 class SetEntry(models.Model):
-    """Один подход: сколько повторений, с каким весом, и сколько отдыхали после."""
+    """Запись подхода(ов): сколько подходов, по сколько повторений, и сколько отдыхали после."""
     session = models.ForeignKey(
         WorkoutSession, related_name='sets', on_delete=models.CASCADE, verbose_name='Тренировка'
     )
@@ -62,8 +62,8 @@ class SetEntry(models.Model):
         'Название упражнения', max_length=100, blank=True,
         help_text='Заполняется автоматически, если упражнение выбрано из справочника'
     )
+    sets_count = models.PositiveIntegerField('Подходов', default=1)
     reps = models.PositiveIntegerField('Повторения', default=0)
-    weight = models.FloatField('Вес, кг', default=0)
     rest_seconds = models.PositiveIntegerField('Отдых, сек', default=60)
     created_at = models.DateTimeField('Время', auto_now_add=True)
 
@@ -73,15 +73,15 @@ class SetEntry(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'{self.display_name}: {self.reps}×{self.weight}кг'
+        return f'{self.display_name}: {self.sets_count}×{self.reps}'
 
     @property
     def display_name(self):
         return self.exercise.name if self.exercise else (self.exercise_name or 'Упражнение')
 
     @property
-    def volume(self):
-        return round(self.reps * self.weight, 1)
+    def total_reps(self):
+        return self.sets_count * self.reps
 
     def save(self, *args, **kwargs):
         if self.exercise and not self.exercise_name:

@@ -54,7 +54,7 @@ def counter_view(request):
             messages.success(request, 'Подход сохранён')
             return redirect('tracker:counter')
     else:
-        form = SetEntryForm(initial={'reps': 0, 'weight': 0, 'rest_seconds': 60})
+        form = SetEntryForm(initial={'reps': 0, 'sets_count': 1, 'rest_seconds': 60})
 
     today_sets = session.sets.select_related('exercise').all()
     exercises = Exercise.objects.all()
@@ -100,9 +100,8 @@ def stats_view(request):
     sessions = WorkoutSession.objects.all()
 
     total_sessions = sessions.count()
-    total_sets = all_sets.count()
-    total_reps = sum(s.reps for s in all_sets)
-    total_volume = round(sum(s.volume for s in all_sets), 1)
+    total_sets = sum(s.sets_count for s in all_sets)
+    total_reps = sum(s.total_reps for s in all_sets)
 
     # Streak: подряд идущие дни с тренировками, считая от сегодня назад
     session_dates = set(sessions.values_list('date', flat=True))
@@ -116,25 +115,25 @@ def stats_view(request):
     daily_labels, daily_reps = [], []
     for i in range(14):
         d = start_14 + timedelta(days=i)
-        reps = sum(s.reps for s in all_sets if s.session.date == d)
+        reps = sum(s.total_reps for s in all_sets if s.session.date == d)
         daily_labels.append(d.strftime('%d.%m'))
         daily_reps.append(reps)
 
-    # Объём по неделям за последние 8 недель
-    weekly_labels, weekly_volume = [], []
+    # Подходы по неделям за последние 8 недель
+    weekly_labels, weekly_sets = [], []
     for i in range(8):
         week_start = start_8w + timedelta(weeks=i)
         week_end = week_start + timedelta(days=6)
-        vol = sum(s.volume for s in all_sets if week_start <= s.session.date <= week_end)
+        cnt = sum(s.sets_count for s in all_sets if week_start <= s.session.date <= week_end)
         weekly_labels.append(week_start.strftime('%d.%m'))
-        weekly_volume.append(round(vol, 1))
+        weekly_sets.append(cnt)
 
     top_exercises = (
         Exercise.objects.all()
         .prefetch_related('sets')
     )
     top_exercise_stats = sorted(
-        [(e.name, sum(s.reps for s in e.sets.all())) for e in top_exercises],
+        [(e.name, sum(s.total_reps for s in e.sets.all())) for e in top_exercises],
         key=lambda x: x[1], reverse=True
     )[:5]
 
@@ -145,16 +144,15 @@ def stats_view(request):
         'total_sessions': total_sessions,
         'total_sets': total_sets,
         'total_reps': total_reps,
-        'total_volume': total_volume,
         'streak': streak,
         'daily_labels_json': json.dumps(daily_labels),
         'daily_reps_json': json.dumps(daily_reps),
         'weekly_labels_json': json.dumps(weekly_labels),
-        'weekly_volume_json': json.dumps(weekly_volume),
+        'weekly_sets_json': json.dumps(weekly_sets),
         'top_exercise_stats': top_exercise_stats,
         'recent_sessions': recent_sessions,
         'exercises': Exercise.objects.all(),
-        'past_entry_form': PastSetEntryForm(initial={'reps': 0, 'weight': 0, 'rest_seconds': 60}),
+        'past_entry_form': PastSetEntryForm(initial={'reps': 0, 'sets_count': 1, 'rest_seconds': 60}),
     }
     return render(request, 'tracker/stats.html', context)
 
@@ -187,16 +185,16 @@ def import_workout_json(request):
       "time_end": "19:00",
       "note": "необязательно",
       "exercises": [
-        {"exercise_id": 1, "count": 10, "weight": 40},
-        {"exercise_id": 1, "count": 8, "weight": 42.5},
-        {"exercise_id": 2, "count": 12}
+        {"exercise_id": 1, "count": 10, "sets": 3},
+        {"exercise_id": 2, "count": 12, "sets": 4}
       ]
     }
 
-    "count" — число повторений (или другая величина, если у упражнения
-    иная единица измерения — секунды/метры/кг). "weight" необязателен.
+    "count" — число повторений в одном подходе (или другая величина,
+    если у упражнения иная единица измерения — секунды/метры/кг).
+    "sets" — количество подходов, необязателен, по умолчанию 1.
     Одно и то же exercise_id можно указывать несколько раз — каждый
-    объект в "exercises" станет отдельным подходом.
+    объект в "exercises" станет отдельной записью.
     """
     try:
         payload = json.loads(request.body.decode('utf-8'))
@@ -244,7 +242,7 @@ def import_workout_json(request):
             exercise=exercise,
             exercise_name=exercise.name,
             reps=int(item.get('count') or 0),
-            weight=float(item.get('weight') or 0),
+            sets_count=int(item.get('sets') or 1),
             rest_seconds=int(item.get('rest_seconds') or 60),
         )
         created += 1

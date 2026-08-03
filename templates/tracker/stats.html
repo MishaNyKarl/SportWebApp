@@ -30,8 +30,8 @@
     <div class="label">Повторений</div>
   </div>
   <div class="stat-tile accent-orange">
-    <div class="value">{{ total_volume }}</div>
-    <div class="label">Тоннаж, кг</div>
+    <div class="value">{{ total_sets }}</div>
+    <div class="label">Подходов</div>
   </div>
   <div class="stat-tile accent-purple">
     <div class="value">{{ streak }} 🔥</div>
@@ -45,7 +45,7 @@
 </div>
 
 <div class="glass-card chart-card">
-  <p class="field label">Тоннаж по неделям</p>
+  <p class="field label">Подходы по неделям</p>
   <canvas id="chart-weekly" height="180"></canvas>
 </div>
 
@@ -75,10 +75,10 @@
         <div>
           <div style="font-weight:700">{{ sess.date|date:"d.m.Y" }}</div>
           <div class="muted" style="font-size:13px">
-            {{ sess.sets.count }} подход(ов){% if sess.time_start %} · {{ sess.time_start|time:"H:i" }}{% if sess.time_end %}–{{ sess.time_end|time:"H:i" }}{% endif %}{% endif %}
+            {{ sess.sets.count }} запис(ей){% if sess.time_start %} · {{ sess.time_start|time:"H:i" }}{% if sess.time_end %}–{{ sess.time_end|time:"H:i" }}{% endif %}{% endif %}
           </div>
         </div>
-        <div class="muted" style="font-size:13px">{{ sess.total_volume }} кг</div>
+        <div class="muted" style="font-size:13px">{{ sess.total_sets }} подх. · {{ sess.total_reps }} повт.</div>
       </div>
     {% endfor %}
   {% else %}
@@ -93,10 +93,11 @@
   <p class="field label">Импорт JSON</p>
   <p class="muted" style="font-size:13px; margin-top:-6px">
     Вставь JSON тренировки (например, из Shortcuts или другого скрипта) и нажми «Импортировать».
+    "count" — повторений в подходе, "sets" — количество подходов (по умолчанию 1).
     id упражнений смотри в списке ниже.
   </p>
   <textarea class="ios-input" id="json-import-input" rows="6" spellcheck="false"
-    placeholder='{&#10;  "date_train": "2026-08-01",&#10;  "time_start": "18:00",&#10;  "time_end": "19:00",&#10;  "exercises": [&#10;    {"exercise_id": 1, "count": 10, "weight": 40},&#10;    {"exercise_id": 1, "count": 8, "weight": 42.5}&#10;  ]&#10;}'></textarea>
+    placeholder='{&#10;  "date_train": "2026-08-01",&#10;  "time_start": "18:00",&#10;  "time_end": "19:00",&#10;  "exercises": [&#10;    {"exercise_id": 1, "count": 10, "sets": 3},&#10;    {"exercise_id": 2, "count": 12, "sets": 4}&#10;  ]&#10;}'></textarea>
   <button class="btn btn-ghost btn-block" id="btn-json-import" type="button" style="margin-top:10px">Импортировать</button>
   <div id="json-import-result" class="muted" style="font-size:13px; margin-top:10px"></div>
 
@@ -128,12 +129,12 @@
       </div>
       <div class="field text-left" style="display:flex; gap:10px;">
         <div style="flex:1">
-          <label for="{{ past_entry_form.reps.id_for_label }}">Повторения</label>
-          {{ past_entry_form.reps }}
+          <label for="{{ past_entry_form.sets_count.id_for_label }}">Подходов</label>
+          {{ past_entry_form.sets_count }}
         </div>
         <div style="flex:1">
-          <label for="{{ past_entry_form.weight.id_for_label }}">Вес, кг</label>
-          {{ past_entry_form.weight }}
+          <label for="{{ past_entry_form.reps.id_for_label }}">Повторения</label>
+          {{ past_entry_form.reps }}
         </div>
       </div>
       <div class="field text-left">
@@ -153,7 +154,7 @@
     dailyLabels: {{ daily_labels_json|safe }},
     dailyReps: {{ daily_reps_json|safe }},
     weeklyLabels: {{ weekly_labels_json|safe }},
-    weeklyVolume: {{ weekly_volume_json|safe }}
+    weeklySets: {{ weekly_sets_json|safe }}
   };
   window.IMPORT_URL = "{% url 'tracker:import_workout_json' %}";
 </script>

@@ -5,11 +5,11 @@ from .models import Exercise, SetEntry, Reminder
 class SetEntryForm(forms.ModelForm):
     class Meta:
         model = SetEntry
-        fields = ['exercise', 'reps', 'weight', 'rest_seconds']
+        fields = ['exercise', 'sets_count', 'reps', 'rest_seconds']
         widgets = {
             'exercise': forms.Select(attrs={'class': 'ios-input'}),
+            'sets_count': forms.NumberInput(attrs={'class': 'ios-input', 'min': 1}),
             'reps': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0}),
-            'weight': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': '0.5'}),
             'rest_seconds': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': 5}),
         }
 
@@ -29,11 +29,11 @@ class PastSetEntryForm(forms.ModelForm):
 
     class Meta:
         model = SetEntry
-        fields = ['exercise', 'reps', 'weight', 'rest_seconds']
+        fields = ['exercise', 'sets_count', 'reps', 'rest_seconds']
         widgets = {
             'exercise': forms.Select(attrs={'class': 'ios-input'}),
+            'sets_count': forms.NumberInput(attrs={'class': 'ios-input', 'min': 1}),
             'reps': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0}),
-            'weight': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': '0.5'}),
             'rest_seconds': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': 5}),
         }
 

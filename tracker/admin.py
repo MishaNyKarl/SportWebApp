@@ -15,14 +15,14 @@ class ExerciseAdmin(admin.ModelAdmin):
 
 @admin.register(WorkoutSession)
 class WorkoutSessionAdmin(admin.ModelAdmin):
-    list_display = ('date', 'time_start', 'time_end', 'note', 'total_reps', 'total_volume')
+    list_display = ('date', 'time_start', 'time_end', 'note', 'total_sets', 'total_reps')
     list_filter = ('date',)
     inlines = [SetEntryInline]
 
 
 @admin.register(SetEntry)
 class SetEntryAdmin(admin.ModelAdmin):
-    list_display = ('display_name', 'reps', 'weight', 'volume', 'rest_seconds', 'session', 'created_at')
+    list_display = ('display_name', 'sets_count', 'reps', 'rest_seconds', 'session', 'created_at')
     list_filter = ('created_at',)
 
 

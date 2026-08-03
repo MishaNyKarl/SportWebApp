@@ -43,8 +43,8 @@
     </div>
     <div class="field text-left" style="display:flex; gap:10px;">
       <div style="flex:1">
-        <label for="{{ form.weight.id_for_label }}">Вес, кг</label>
-        {{ form.weight }}
+        <label for="{{ form.sets_count.id_for_label }}">Подходов</label>
+        {{ form.sets_count }}
       </div>
       <div style="flex:1">
         <label for="{{ form.rest_seconds.id_for_label }}">Отдых, сек</label>
@@ -68,7 +68,7 @@
       <div class="glass-row">
         <div>
           <div style="font-weight:700">{{ s.display_name }}</div>
-          <div class="muted" style="font-size:13px">{{ s.reps }}× · {{ s.weight }} кг · отдых {{ s.rest_seconds }}с</div>
+          <div class="muted" style="font-size:13px">{{ s.sets_count }} подх. × {{ s.reps }} повт. · отдых {{ s.rest_seconds }}с</div>
         </div>
         <form method="post" action="{% url 'tracker:delete_set' s.pk %}">
           {% csrf_token %}

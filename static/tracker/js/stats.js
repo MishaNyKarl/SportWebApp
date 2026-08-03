@@ -42,8 +42,8 @@
       data: {
         labels: data.weeklyLabels,
         datasets: [{
-          label: "Тоннаж, кг",
-          data: data.weeklyVolume,
+          label: "Подходов",
+          data: data.weeklySets,
           borderColor: "#30D158",
           backgroundColor: "rgba(48, 209, 88, 0.18)",
           fill: true,
