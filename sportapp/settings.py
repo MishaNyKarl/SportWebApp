@@ -41,6 +41,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'sportapp.urls'
 
+# --- Авторизация ---------------------------------------------------------
+LOGIN_URL = 'tracker:login'
+LOGIN_REDIRECT_URL = 'tracker:timer'
+LOGOUT_REDIRECT_URL = 'tracker:login'
+
 # Префикс пути для монтирования приложения не в корне домена (например /sport).
 # Прокси должен передавать оригинальный путь как есть, без обрезания префикса —
 # сам префикс встраивается в urlpatterns и STATIC_URL/MEDIA_URL ниже.

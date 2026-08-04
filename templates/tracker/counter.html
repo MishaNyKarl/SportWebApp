@@ -101,8 +101,41 @@
         <label for="{{ exercise_form.unit.id_for_label }}">Единица измерения</label>
         {{ exercise_form.unit }}
       </div>
+      <div class="field text-left">
+        <label for="{{ exercise_form.group.id_for_label }}">Группа</label>
+        {{ exercise_form.group }}
+      </div>
+      {% if exercise_form.is_global %}
+      <div class="field switch-field">
+        <label for="{{ exercise_form.is_global.id_for_label }}">Глобальное (видно всем)</label>
+        <label class="switch">{{ exercise_form.is_global }}<span class="track"></span></label>
+      </div>
+      {% endif %}
       <button type="submit" class="btn btn-primary btn-block">Добавить</button>
     </form>
+
+    <div class="modal-divider"></div>
+
+    <p class="field label" style="margin-bottom:10px">Группы</p>
+    {% if groups %}
+    <div class="chip-row" style="margin-top:0">
+      {% for g in groups %}
+        <div class="chip{% if g.is_global %} chip-global{% endif %}">{{ g.name }}{% if g.is_global %} 🌐{% endif %}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <form method="post" action="{% url 'tracker:add_group' %}" class="inline-add-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'tracker:counter' %}">
+      {{ group_form.name }}
+      <button type="submit" class="btn btn-ghost" title="Добавить группу">+</button>
+    </form>
+    {% if group_form.is_global %}
+    <div class="field switch-field" style="margin-top:10px">
+      <label for="{{ group_form.is_global.id_for_label }}">Глобальная группа</label>
+      <label class="switch">{{ group_form.is_global }}<span class="track"></span></label>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

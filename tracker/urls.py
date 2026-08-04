@@ -4,10 +4,16 @@ from . import views
 app_name = 'tracker'
 
 urlpatterns = [
+    path('signup/', views.signup_view, name='signup'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('settings/', views.settings_view, name='settings'),
+
     path('', views.timer_view, name='timer'),
     path('counter/', views.counter_view, name='counter'),
     path('counter/<int:pk>/delete/', views.delete_set, name='delete_set'),
     path('exercises/add/', views.add_exercise, name='add_exercise'),
+    path('groups/add/', views.add_group, name='add_group'),
     path('stats/', views.stats_view, name='stats'),
     path('stats/add-past/', views.add_past_entry, name='add_past_entry'),
     path('reminders/', views.reminders_view, name='reminders'),

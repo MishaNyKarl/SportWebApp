@@ -1,9 +1,35 @@
+import secrets
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 
+class ExerciseGroup(models.Model):
+    """Группа (категория) упражнений: своя у пользователя или глобальная (owner=None)."""
+    name = models.CharField('Название', max_length=100)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='exercise_groups', on_delete=models.CASCADE,
+        null=True, blank=True, verbose_name='Владелец',
+        help_text='Пусто — глобальная группа, видна всем пользователям'
+    )
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Группа упражнений'
+        verbose_name_plural = 'Группы упражнений'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_global(self):
+        return self.owner_id is None
+
+
 class Exercise(models.Model):
-    """Упражнение из справочника (пресет для быстрого выбора)."""
+    """Упражнение из справочника (пресет для быстрого выбора): своё или глобальное (owner=None)."""
     UNIT_CHOICES = [
         ('reps', 'повторения'),
         ('kg', 'кг'),
@@ -11,8 +37,17 @@ class Exercise(models.Model):
         ('m', 'метры'),
     ]
 
-    name = models.CharField('Название', max_length=100, unique=True)
+    name = models.CharField('Название', max_length=100)
     unit = models.CharField('Единица измерения', max_length=10, choices=UNIT_CHOICES, default='reps')
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='exercises', on_delete=models.CASCADE,
+        null=True, blank=True, verbose_name='Владелец',
+        help_text='Пусто — глобальное упражнение, видно всем пользователям'
+    )
+    group = models.ForeignKey(
+        ExerciseGroup, related_name='exercises', on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name='Группа'
+    )
     created_at = models.DateTimeField('Создано', auto_now_add=True)
 
     class Meta:
@@ -23,9 +58,17 @@ class Exercise(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def is_global(self):
+        return self.owner_id is None
+
 
 class WorkoutSession(models.Model):
-    """Тренировочная сессия (один день тренировки)."""
+    """Тренировочная сессия (один день тренировки) конкретного пользователя."""
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='workout_sessions', on_delete=models.CASCADE,
+        null=True, blank=True, verbose_name='Владелец'
+    )
     date = models.DateField('Дата', default=timezone.localdate)
     time_start = models.TimeField('Начало', null=True, blank=True)
     time_end = models.TimeField('Окончание', null=True, blank=True)
@@ -90,12 +133,16 @@ class SetEntry(models.Model):
 
 
 class Reminder(models.Model):
-    """Напоминание о тренировке."""
+    """Напоминание о тренировке конкретного пользователя."""
     DAY_CHOICES = [
         ('mon', 'Пн'), ('tue', 'Вт'), ('wed', 'Ср'), ('thu', 'Чт'),
         ('fri', 'Пт'), ('sat', 'Сб'), ('sun', 'Вс'),
     ]
 
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='reminders', on_delete=models.CASCADE,
+        null=True, blank=True, verbose_name='Владелец'
+    )
     title = models.CharField('Название', max_length=100)
     time = models.TimeField('Время')
     days = models.CharField(
@@ -122,3 +169,34 @@ class Reminder(models.Model):
         if not days:
             return 'Каждый день'
         return ', '.join(labels.get(d, d) for d in days)
+
+
+class ApiKey(models.Model):
+    """Личный API-ключ пользователя для защищённых внешних вызовов (JSON-импорт тренировок)."""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, related_name='api_key', on_delete=models.CASCADE, verbose_name='Пользователь'
+    )
+    key = models.CharField('Ключ', max_length=64, unique=True, editable=False)
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'API-ключ'
+        verbose_name_plural = 'API-ключи'
+
+    def __str__(self):
+        return f'API-ключ {self.user}'
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def for_user(cls, user):
+        obj, _ = cls.objects.get_or_create(user=user)
+        return obj
+
+    def regenerate(self):
+        self.key = secrets.token_urlsafe(32)
+        self.save(update_fields=['key'])
+        return self.key

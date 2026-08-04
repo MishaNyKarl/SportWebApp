@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d14">
+  <title>Регистрация — SportApp</title>
+  <link rel="stylesheet" href="{% static 'tracker/css/style.css' %}">
+  <link rel="icon" href="data:,">
+</head>
+<body class="auth-body">
+  <div class="auth-wrap">
+    <div class="auth-logo">🏋️</div>
+    <h1 class="auth-title">SportApp</h1>
+    <p class="auth-subtitle">Создай аккаунт</p>
+
+    <div class="glass-card">
+      {% if form.non_field_errors %}
+        <div class="flash flash-error">{{ form.non_field_errors.0 }}</div>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="field text-left">
+          <label for="{{ form.username.id_for_label }}">Логин</label>
+          {{ form.username }}
+          {% if form.username.errors %}<div class="field-error">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="field text-left">
+          <label for="{{ form.password1.id_for_label }}">Пароль</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<div class="field-error">{{ form.password1.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="field text-left">
+          <label for="{{ form.password2.id_for_label }}">Повтори пароль</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<div class="field-error">{{ form.password2.errors.0 }}</div>{% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Зарегистрироваться</button>
+      </form>
+    </div>
+
+    <p class="auth-switch">Уже есть аккаунт? <a href="{% url 'tracker:login' %}">Войти</a></p>
+  </div>
+</body>
+</html>

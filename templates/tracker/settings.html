@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Настройки — SportApp{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <p class="eyebrow">{{ request.user.username }}</p>
+  <h1>Настройки</h1>
+</div>
+
+<div class="glass-card">
+  <p class="field label" style="margin-bottom:10px">API-ключ</p>
+  <p class="muted" style="font-size:13px; margin-top:-4px">
+    Используй этот ключ, чтобы добавлять тренировки извне (например, из iOS Shortcuts) через
+    <code>POST {{ import_url }}</code> с заголовком <code>Authorization: Bearer &lt;ключ&gt;</code>.
+    Никому не показывай его — с ним можно писать тренировки от твоего имени.
+  </p>
+  <div class="api-key-box" id="api-key-box">{{ api_key.key }}</div>
+  <div style="display:flex; gap:10px; margin-top:12px">
+    <button class="btn btn-ghost btn-block" type="button" id="btn-copy-key">Скопировать</button>
+  </div>
+  <form method="post" style="margin-top:10px" onsubmit="return confirm('Старый ключ перестанет работать. Продолжить?');">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="regenerate">
+    <button type="submit" class="btn btn-danger btn-block">Перевыпустить ключ</button>
+  </form>
+</div>
+
+<div class="glass-card">
+  <p class="field label">Пример запроса</p>
+  <pre class="code-block">curl -X POST {{ import_url }} \
+  -H "Authorization: Bearer {{ api_key.key }}" \
+  -H "Content-Type: application/json" \
+  -d '{"date_train":"2026-08-01","exercises":[{"exercise_id":1,"count":10,"sets":3}]}'</pre>
+</div>
+
+<div class="glass-card">
+  <p class="field label">Аккаунт</p>
+  <div class="glass-row">
+    <div>
+      <div style="font-weight:700">{{ request.user.username }}</div>
+      <div class="muted" style="font-size:13px">{% if request.user.is_staff %}Администратор — может добавлять глобальные упражнения и группы{% else %}Обычный пользователь{% endif %}</div>
+    </div>
+  </div>
+  <form method="post" action="{% url 'tracker:logout' %}" style="margin-top:12px">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-ghost btn-block">Выйти</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  var btnCopy = document.getElementById('btn-copy-key');
+  var keyBox = document.getElementById('api-key-box');
+  if (btnCopy && keyBox) {
+    btnCopy.addEventListener('click', function () {
+      navigator.clipboard.writeText(keyBox.textContent.trim()).then(function () {
+        btnCopy.textContent = 'Скопировано ✓';
+        setTimeout(function () { btnCopy.textContent = 'Скопировать'; }, 1500);
+      });
+    });
+  }
+</script>
+{% endblock %}

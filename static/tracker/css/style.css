@@ -1,34 +1,34 @@
 /* ==========================================================================
-   SportWebApp — MonkeyType-style design system
-   Тёмный, плоский, моноширинный UI: без стекла и градиентов, минимум теней,
-   один акцентный жёлтый цвет, маленькие радиусы вместо капсул.
-   Имена классов (.glass-card, .btn, .chip и т.д.) оставлены прежними,
-   чтобы не переписывать все шаблоны — поменялась только тема.
+   SportWebApp — Dark iOS "Liquid Glass" design system
+   Тёмная, воздушная тема: полупрозрачные стеклянные панели с блюром,
+   капсульные кнопки, крупные заголовки, нижний таб-бар как в iOS.
    ========================================================================== */
 
 :root {
-  --accent-blue: #e2b714;   /* основной акцент (жёлтый, как "main" у MonkeyType) */
-  --accent-green: #7cb83f;  /* успех / включено */
-  --accent-orange: #f4a261; /* доп. акцент для карточек статистики */
-  --accent-red: #ca4754;    /* ошибка / удаление (родной цвет ошибки MonkeyType) */
-  --accent-purple: #9b8afb; /* доп. акцент */
-  --accent-teal: #56c2c0;   /* доп. акцент */
+  --accent-blue: #0A84FF;
+  --accent-green: #30D158;
+  --accent-orange: #FF9F0A;
+  --accent-red: #FF453A;
+  --accent-purple: #BF5AF2;
+  --accent-teal: #64D2FF;
 
-  --bg-1: #323437;
+  --bg-1: #050506;
+  --bg-2: #0b0e16;
+  --bg-3: #130c1c;
 
-  --text-primary: #d1d0c5;
-  --text-secondary: #646669;
-  --text-tertiary: rgba(100, 102, 105, 0.65);
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(245, 245, 247, 0.6);
+  --text-tertiary: rgba(245, 245, 247, 0.38);
 
-  --glass-bg: #2c2e31;
-  --glass-bg-strong: #26282b;
-  --glass-border: #3a3d41;
-  --glass-shadow: none;
+  --glass-bg: rgba(30, 30, 36, 0.55);
+  --glass-bg-strong: rgba(40, 40, 48, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 1px 1px rgba(0, 0, 0, 0.2);
 
-  --radius-xl: 10px;
-  --radius-lg: 8px;
-  --radius-md: 6px;
-  --radius-pill: 8px;
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-pill: 999px;
 
   --tabbar-height: 84px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -44,10 +44,14 @@ html, body {
 }
 
 body {
-  font-family: "Roboto Mono", "SF Mono", "JetBrains Mono", ui-monospace, Menlo,
-               Consolas, "Courier New", monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+               "Segoe UI", Inter, Roboto, sans-serif;
   color: var(--text-primary);
-  background: var(--bg-1);
+  background:
+    radial-gradient(1100px 700px at 15% -10%, var(--bg-3), transparent 60%),
+    radial-gradient(900px 700px at 110% 10%, var(--bg-2), transparent 55%),
+    var(--bg-1);
+  background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
@@ -56,6 +60,7 @@ body {
 a { color: inherit; text-decoration: none; }
 ul { list-style: none; margin: 0; padding: 0; }
 button { font-family: inherit; }
+code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; }
 
 .app {
   max-width: 520px;
@@ -65,30 +70,54 @@ button { font-family: inherit; }
   position: relative;
 }
 
-/* ---------- Заголовок страницы ---------- */
+/* ---------- Профиль (верхняя плашка) ---------- */
+.profile-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  padding: 8px 14px 8px 8px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  width: fit-content;
+}
+.profile-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent-blue); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; flex: none;
+}
+.profile-name { font-weight: 600; font-size: 14px; }
+.profile-chevron { width: 16px; height: 16px; color: var(--text-tertiary); }
+
+/* ---------- Заголовок страницы (large title) ---------- */
 .page-header {
   margin-bottom: 20px;
 }
 .page-header .eyebrow {
   font-size: 13px;
   font-weight: 600;
-  color: var(--accent-blue);
+  color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   margin: 0 0 2px;
 }
 .page-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
-/* ---------- Карточка ---------- */
+/* ---------- Стеклянная карточка ---------- */
 .glass-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   padding: 22px;
   margin-bottom: 16px;
 }
@@ -105,6 +134,12 @@ button { font-family: inherit; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.modal-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 18px 0;
 }
 
 /* ---------- Кнопки ---------- */
@@ -124,8 +159,8 @@ button { font-family: inherit; }
   -webkit-tap-highlight-color: transparent;
 }
 .btn:active { transform: scale(0.96); }
-.btn-primary { background: var(--accent-blue); color: #10121a; }
-.btn-success { background: var(--accent-green); color: #0d1a05; }
+.btn-primary { background: var(--accent-blue); color: #fff; }
+.btn-success { background: var(--accent-green); color: #06210f; }
 .btn-danger  { background: var(--accent-red); color: #fff; }
 .btn-ghost {
   background: var(--glass-bg-strong);
@@ -160,6 +195,19 @@ button { font-family: inherit; }
   color: var(--text-secondary);
   margin-bottom: 6px;
 }
+.field-error { color: var(--accent-red); font-size: 12px; margin-top: 6px; font-weight: 600; }
+
+.switch-field {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.switch-field label { margin: 0; }
+
+.inline-add-form {
+  display: flex; gap: 8px; align-items: center;
+}
+.inline-add-form .ios-input { flex: 1; }
+.inline-add-form .btn { padding: 12px 18px; }
+
 .checkbox-days {
   display: flex; flex-wrap: wrap; gap: 8px;
 }
@@ -176,7 +224,7 @@ button { font-family: inherit; }
 }
 .checkbox-days input { accent-color: var(--accent-blue); }
 
-/* ---------- Чипсы (пресеты времени и т.п.) ---------- */
+/* ---------- Чипсы (пресеты времени, группы и т.п.) ---------- */
 .chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
 .chip {
   background: var(--glass-bg-strong);
@@ -189,7 +237,8 @@ button { font-family: inherit; }
   transition: transform 0.12s ease, background 0.12s ease;
 }
 .chip:active { transform: scale(0.94); }
-.chip.active { background: var(--accent-blue); color: #10121a; border-color: transparent; }
+.chip.active { background: var(--accent-blue); color: #fff; border-color: transparent; }
+.chip-global { border-color: var(--accent-purple); color: var(--text-primary); }
 
 /* ---------- Таймер: кольцо прогресса ---------- */
 .timer-ring-wrap {
@@ -208,7 +257,7 @@ button { font-family: inherit; }
   transition: stroke-dashoffset 0.25s linear, stroke 0.3s ease;
 }
 .timer-center { position: absolute; text-align: center; }
-.timer-center .time { font-size: 52px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.timer-center .time { font-size: 52px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .timer-center .label { font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-top: 2px; }
 
 .timer-controls { display: flex; gap: 14px; justify-content: center; align-items: center; margin-top: 6px; }
@@ -219,8 +268,8 @@ button { font-family: inherit; }
   margin: 6px 0 18px;
 }
 .counter-value {
-  font-size: 76px; font-weight: 700; min-width: 130px; text-align: center;
-  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  font-size: 76px; font-weight: 800; min-width: 130px; text-align: center;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }
 .counter-btn {
   width: 68px; height: 68px; border-radius: 50%;
@@ -229,7 +278,7 @@ button { font-family: inherit; }
   transition: transform 0.1s ease;
 }
 .counter-btn:active { transform: scale(0.9); }
-.counter-btn.plus { background: var(--accent-green); color: #0d1a05; }
+.counter-btn.plus { background: var(--accent-green); color: #06210f; }
 .counter-btn.minus { background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: var(--text-primary); }
 
 /* ---------- Статистика ---------- */
@@ -239,8 +288,10 @@ button { font-family: inherit; }
 .stat-tile {
   background: var(--glass-bg); border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg); padding: 16px;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
-.stat-tile .value { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.stat-tile .value { font-size: 28px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .stat-tile .label { font-size: 13px; color: var(--text-secondary); font-weight: 600; margin-top: 2px; }
 .stat-tile.accent-blue .value { color: var(--accent-blue); }
 .stat-tile.accent-green .value { color: var(--accent-green); }
@@ -252,7 +303,7 @@ button { font-family: inherit; }
 .rank-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
 .rank-badge {
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--accent-blue); color: #10121a;
+  background: var(--accent-blue); color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700; flex: none;
 }
@@ -260,7 +311,7 @@ button { font-family: inherit; }
 .rank-value { color: var(--text-secondary); font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
 
 /* ---------- Напоминания ---------- */
-.reminder-row .time { font-size: 22px; font-weight: 700; min-width: 64px; font-variant-numeric: tabular-nums; }
+.reminder-row .time { font-size: 22px; font-weight: 800; min-width: 64px; font-variant-numeric: tabular-nums; }
 .reminder-row .info { flex: 1; }
 .reminder-row .title { font-weight: 700; }
 .reminder-row .days { font-size: 13px; color: var(--text-secondary); }
@@ -271,16 +322,16 @@ button { font-family: inherit; }
 }
 .switch input { opacity: 0; width: 0; height: 0; }
 .switch .track {
-  position: absolute; inset: 0; background: var(--glass-bg-strong);
-  border: 1px solid var(--glass-border);
+  position: absolute; inset: 0; background: rgba(120,120,128,0.32);
   border-radius: var(--radius-pill); transition: background 0.2s ease; cursor: pointer;
 }
 .switch .track::before {
-  content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
-  background: var(--text-primary); border-radius: 50%; transition: transform 0.2s ease;
+  content: ""; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px;
+  background: #fff; border-radius: 50%; transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.35);
 }
-.switch input:checked + .track { background: var(--accent-green); border-color: transparent; }
-.switch input:checked + .track::before { transform: translateX(20px); background: #0d1a05; }
+.switch input:checked + .track { background: var(--accent-green); }
+.switch input:checked + .track::before { transform: translateX(20px); }
 
 .icon-btn {
   width: 34px; height: 34px; border-radius: 50%; border: none;
@@ -292,7 +343,7 @@ button { font-family: inherit; }
   width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--glass-border);
   background: var(--glass-bg-strong); color: var(--accent-blue);
   display: flex; align-items: center; justify-content: center; cursor: pointer;
-  flex: none;
+  flex: none; box-shadow: var(--glass-shadow);
 }
 .header-icon-btn svg { width: 22px; height: 22px; }
 .header-icon-btn:active { transform: scale(0.92); }
@@ -300,7 +351,7 @@ button { font-family: inherit; }
 /* ---------- Модалка ---------- */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
   display: flex; align-items: flex-end; justify-content: center;
   opacity: 0; pointer-events: none;
   transition: opacity 0.2s ease;
@@ -309,6 +360,7 @@ button { font-family: inherit; }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
 .modal-card {
   width: 100%; max-width: 480px; margin-bottom: 0;
+  max-height: 82vh; overflow-y: auto;
   transform: translateY(16px);
   transition: transform 0.2s ease;
 }
@@ -317,13 +369,39 @@ button { font-family: inherit; }
 /* ---------- select как .ios-input ---------- */
 select.ios-input {
   -webkit-appearance: none; appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23646669' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0a0a8' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 18px;
   padding-right: 40px;
 }
 textarea.ios-input { resize: vertical; font-family: inherit; }
+
+/* ---------- API-ключ ---------- */
+.api-key-box {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+  word-break: break-all;
+  color: var(--accent-teal);
+}
+.code-block {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
 
 /* ---------- История таймера ---------- */
 .history-list { max-height: 260px; overflow-y: auto; }
@@ -361,13 +439,16 @@ textarea.ios-input { resize: vertical; font-family: inherit; }
   bottom: calc(14px + var(--safe-bottom));
   transform: translateX(-50%);
   width: min(94%, 520px);
-  height: 60px;
+  height: 62px;
   display: flex;
   align-items: center;
   justify-content: space-around;
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
   z-index: 50;
 }
 .tab-item {
@@ -375,13 +456,25 @@ textarea.ios-input { resize: vertical; font-family: inherit; }
   gap: 2px; flex: 1; height: 100%; cursor: pointer; color: var(--text-tertiary);
   transition: color 0.15s ease;
 }
-.tab-item svg { width: 22px; height: 22px; }
-.tab-item span { font-size: 10px; font-weight: 600; }
+.tab-item svg { width: 21px; height: 21px; }
+.tab-item span { font-size: 9.5px; font-weight: 600; }
 .tab-item.active { color: var(--accent-blue); }
 .tab-item.active .tab-pill {
-  background: rgba(226, 183, 20, 0.14);
-  border-radius: var(--radius-md);
+  background: rgba(10, 132, 255, 0.16);
+  border-radius: var(--radius-pill);
 }
+
+/* ---------- Авторизация ---------- */
+.auth-body {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; margin: 0; padding: 24px;
+}
+.auth-wrap { width: 100%; max-width: 380px; text-align: center; }
+.auth-logo { font-size: 48px; margin-bottom: 8px; }
+.auth-title { font-size: 30px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.02em; }
+.auth-subtitle { color: var(--text-secondary); margin: 0 0 22px; font-size: 15px; }
+.auth-switch { color: var(--text-secondary); font-size: 14px; margin-top: 18px; }
+.auth-switch a { color: var(--accent-blue); font-weight: 600; }
 
 /* ---------- Тест печати ---------- */
 .type-live-stats {
@@ -389,10 +482,11 @@ textarea.ios-input { resize: vertical; font-family: inherit; }
   font-variant-numeric: tabular-nums;
 }
 .type-live-stats .item { text-align: center; }
-.type-live-stats .value { font-size: 30px; font-weight: 700; color: var(--accent-blue); }
+.type-live-stats .value { font-size: 30px; font-weight: 800; color: var(--accent-blue); }
 .type-live-stats .label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
 
 .type-area {
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   font-size: 21px;
   line-height: 1.8;
   letter-spacing: 0.01em;

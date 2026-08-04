@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Exercise, WorkoutSession, SetEntry, Reminder
+from .models import Exercise, ExerciseGroup, WorkoutSession, SetEntry, Reminder, ApiKey
 
 
 class SetEntryInline(admin.TabularInline):
@@ -7,16 +7,24 @@ class SetEntryInline(admin.TabularInline):
     extra = 0
 
 
+@admin.register(ExerciseGroup)
+class ExerciseGroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'owner', 'is_global', 'created_at')
+    list_filter = ('owner',)
+    search_fields = ('name',)
+
+
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ('name', 'unit', 'created_at')
+    list_display = ('name', 'unit', 'group', 'owner', 'is_global', 'created_at')
+    list_filter = ('owner', 'group', 'unit')
     search_fields = ('name',)
 
 
 @admin.register(WorkoutSession)
 class WorkoutSessionAdmin(admin.ModelAdmin):
-    list_display = ('date', 'time_start', 'time_end', 'note', 'total_sets', 'total_reps')
-    list_filter = ('date',)
+    list_display = ('date', 'owner', 'time_start', 'time_end', 'note', 'total_sets', 'total_reps')
+    list_filter = ('date', 'owner')
     inlines = [SetEntryInline]
 
 
@@ -28,5 +36,11 @@ class SetEntryAdmin(admin.ModelAdmin):
 
 @admin.register(Reminder)
 class ReminderAdmin(admin.ModelAdmin):
-    list_display = ('title', 'time', 'days_display', 'enabled')
-    list_filter = ('enabled',)
+    list_display = ('title', 'owner', 'time', 'days_display', 'enabled')
+    list_filter = ('enabled', 'owner')
+
+
+@admin.register(ApiKey)
+class ApiKeyAdmin(admin.ModelAdmin):
+    list_display = ('user', 'key', 'created_at')
+    search_fields = ('user__username',)

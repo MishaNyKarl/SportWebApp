@@ -2,38 +2,94 @@ import json
 import os
 import urllib.error
 import urllib.request
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 from django.contrib import messages
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .forms import SetEntryForm, PastSetEntryForm, ExerciseForm, ReminderForm
-from .models import Exercise, WorkoutSession, SetEntry, Reminder
+from .forms import (
+    SetEntryForm, PastSetEntryForm, ExerciseForm, GroupForm, ReminderForm,
+    SportLoginForm, SportSignupForm,
+)
+from .models import Exercise, ExerciseGroup, WorkoutSession, SetEntry, Reminder, ApiKey
 
 MONKEYTYPE_API = 'https://api.monkeytype.com'
 
 
-def timer_view(request):
-    """Главная страница — таймер отдыха между подходами."""
-    return render(request, 'tracker/timer.html', {'active_tab': 'timer'})
+# --- Авторизация -----------------------------------------------------------
+
+def signup_view(request):
+    if request.user.is_authenticated:
+        return redirect('tracker:timer')
+    if request.method == 'POST':
+        form = SportSignupForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            # Первый зарегистрированный становится админом — управляет глобальным каталогом.
+            if not User.objects.exists():
+                user.is_staff = True
+                user.is_superuser = True
+            user.save()
+            ApiKey.for_user(user)
+            login(request, user)
+            messages.success(request, 'Добро пожаловать!')
+            return redirect('tracker:timer')
+    else:
+        form = SportSignupForm()
+    return render(request, 'tracker/signup.html', {'form': form})
 
 
-def _get_or_create_today_session():
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('tracker:timer')
+    if request.method == 'POST':
+        form = SportLoginForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.get_user())
+            return redirect(request.GET.get('next') or 'tracker:timer')
+    else:
+        form = SportLoginForm(request)
+    return render(request, 'tracker/login.html', {'form': form})
+
+
+@require_POST
+def logout_view(request):
+    logout(request)
+    return redirect('tracker:login')
+
+
+# --- Вспомогательное ---------------------------------------------------------
+
+def _visible_exercises(user):
+    return Exercise.objects.filter(Q(owner=user) | Q(owner__isnull=True)).order_by('name')
+
+
+def _visible_groups(user):
+    return ExerciseGroup.objects.filter(Q(owner=user) | Q(owner__isnull=True)).order_by('name')
+
+
+def _get_or_create_today_session(user):
     today = timezone.localdate()
-    session, _ = WorkoutSession.objects.get_or_create(date=today)
+    session, _ = WorkoutSession.objects.get_or_create(date=today, owner=user)
     return session
 
 
-def _recent_exercises(limit=3):
-    """Последние N уникальных упражнений, использованных в подходах — для быстрого выбора."""
+def _recent_exercises(user, limit=3):
+    """Последние N уникальных упражнений пользователя — для быстрого выбора."""
     seen_ids = []
     recent = []
     qs = (
-        SetEntry.objects.exclude(exercise__isnull=True)
+        SetEntry.objects.filter(session__owner=user, exercise__isnull=False)
         .select_related('exercise')
         .order_by('-created_at')[:50]
     )
@@ -46,12 +102,25 @@ def _recent_exercises(limit=3):
     return recent
 
 
+# --- Таймер ---------------------------------------------------------
+
+@login_required
+def timer_view(request):
+    """Главная страница — таймер отдыха между подходами."""
+    return render(request, 'tracker/timer.html', {'active_tab': 'timer'})
+
+
+# --- Счётчик ---------------------------------------------------------
+
+@login_required
 def counter_view(request):
     """Счётчик повторений + сохранение подходов."""
-    session = _get_or_create_today_session()
+    session = _get_or_create_today_session(request.user)
+    exercise_qs = _visible_exercises(request.user)
+    group_qs = _visible_groups(request.user)
 
     if request.method == 'POST':
-        form = SetEntryForm(request.POST)
+        form = SetEntryForm(request.POST, exercise_queryset=exercise_qs)
         if form.is_valid():
             entry = form.save(commit=False)
             entry.session = session
@@ -59,50 +128,83 @@ def counter_view(request):
             messages.success(request, 'Подход сохранён')
             return redirect('tracker:counter')
     else:
-        form = SetEntryForm(initial={'reps': 0, 'sets_count': 1, 'rest_seconds': 60})
+        form = SetEntryForm(
+            initial={'reps': 0, 'sets_count': 1, 'rest_seconds': 60}, exercise_queryset=exercise_qs
+        )
 
     today_sets = session.sets.select_related('exercise').all()
-    exercises = Exercise.objects.all()
 
     return render(request, 'tracker/counter.html', {
         'active_tab': 'counter',
         'form': form,
-        'exercise_form': ExerciseForm(),
+        'exercise_form': ExerciseForm(group_queryset=group_qs, show_global=request.user.is_staff),
+        'group_form': GroupForm(show_global=request.user.is_staff),
         'today_sets': today_sets,
-        'exercises': exercises,
-        'recent_exercises': _recent_exercises(),
+        'exercises': exercise_qs,
+        'groups': group_qs,
+        'recent_exercises': _recent_exercises(request.user),
         'session': session,
     })
 
 
+@login_required
 @require_POST
 def delete_set(request, pk):
-    entry = get_object_or_404(SetEntry, pk=pk)
+    entry = get_object_or_404(SetEntry, pk=pk, session__owner=request.user)
     entry.delete()
     messages.success(request, 'Подход удалён')
     return redirect('tracker:counter')
 
 
+@login_required
 @require_POST
 def add_exercise(request):
     """Добавление нового упражнения в справочник (модалка по шестерёнке)."""
-    form = ExerciseForm(request.POST)
+    form = ExerciseForm(
+        request.POST, group_queryset=_visible_groups(request.user), show_global=request.user.is_staff
+    )
     if form.is_valid():
-        form.save()
+        exercise = form.save(commit=False)
+        if request.user.is_staff and form.cleaned_data.get('is_global'):
+            exercise.owner = None
+        else:
+            exercise.owner = request.user
+        exercise.save()
         messages.success(request, 'Упражнение добавлено')
     else:
         messages.error(request, 'Не удалось добавить упражнение: проверь название')
     return redirect(request.POST.get('next') or 'tracker:counter')
 
 
+@login_required
+@require_POST
+def add_group(request):
+    """Добавление новой группы упражнений."""
+    form = GroupForm(request.POST, show_global=request.user.is_staff)
+    if form.is_valid():
+        group = form.save(commit=False)
+        if request.user.is_staff and form.cleaned_data.get('is_global'):
+            group.owner = None
+        else:
+            group.owner = request.user
+        group.save()
+        messages.success(request, 'Группа добавлена')
+    else:
+        messages.error(request, 'Не удалось добавить группу: проверь название')
+    return redirect(request.POST.get('next') or 'tracker:counter')
+
+
+# --- Статистика ---------------------------------------------------------
+
+@login_required
 def stats_view(request):
     """Статистика тренировок: объём, повторения, серии, графики."""
     today = timezone.localdate()
     start_14 = today - timedelta(days=13)
     start_8w = today - timedelta(weeks=7)
 
-    all_sets = SetEntry.objects.select_related('session').all()
-    sessions = WorkoutSession.objects.all()
+    all_sets = list(SetEntry.objects.filter(session__owner=request.user).select_related('session', 'exercise'))
+    sessions = WorkoutSession.objects.filter(owner=request.user)
 
     total_sessions = sessions.count()
     total_sets = sum(s.sets_count for s in all_sets)
@@ -133,16 +235,19 @@ def stats_view(request):
         weekly_labels.append(week_start.strftime('%d.%m'))
         weekly_sets.append(cnt)
 
-    top_exercises = (
-        Exercise.objects.all()
-        .prefetch_related('sets')
-    )
+    # Топ упражнений по повторениям (считаем только на своих подходах пользователя)
+    totals = defaultdict(int)
+    names = {}
+    for s in all_sets:
+        key = s.exercise_id or s.exercise_name
+        names[key] = s.display_name
+        totals[key] += s.total_reps
     top_exercise_stats = sorted(
-        [(e.name, sum(s.total_reps for s in e.sets.all())) for e in top_exercises],
-        key=lambda x: x[1], reverse=True
+        [(names[k], v) for k, v in totals.items()], key=lambda x: x[1], reverse=True
     )[:5]
 
     recent_sessions = sessions.prefetch_related('sets')[:10]
+    exercise_qs = _visible_exercises(request.user)
 
     context = {
         'active_tab': 'stats',
@@ -156,18 +261,23 @@ def stats_view(request):
         'weekly_sets_json': json.dumps(weekly_sets),
         'top_exercise_stats': top_exercise_stats,
         'recent_sessions': recent_sessions,
-        'exercises': Exercise.objects.all(),
-        'past_entry_form': PastSetEntryForm(initial={'reps': 0, 'sets_count': 1, 'rest_seconds': 60}),
+        'exercises': exercise_qs,
+        'past_entry_form': PastSetEntryForm(
+            initial={'reps': 0, 'sets_count': 1, 'rest_seconds': 60}, exercise_queryset=exercise_qs
+        ),
     }
     return render(request, 'tracker/stats.html', context)
 
 
+@login_required
 @require_POST
 def add_past_entry(request):
     """Добавление тренировки задним числом (иконка тренировки на странице статистики)."""
-    form = PastSetEntryForm(request.POST)
+    form = PastSetEntryForm(request.POST, exercise_queryset=_visible_exercises(request.user))
     if form.is_valid():
-        session, _ = WorkoutSession.objects.get_or_create(date=form.cleaned_data['date'])
+        session, _ = WorkoutSession.objects.get_or_create(
+            date=form.cleaned_data['date'], owner=request.user
+        )
         entry = form.save(commit=False)
         entry.session = session
         entry.save()
@@ -177,11 +287,26 @@ def add_past_entry(request):
     return redirect('tracker:stats')
 
 
+def _authenticate_api_key(request):
+    """Достаёт пользователя по заголовку Authorization: Bearer <ключ> (или X-Api-Key)."""
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    key = auth_header[len('Bearer '):].strip() if auth_header.startswith('Bearer ') else ''
+    if not key:
+        key = request.META.get('HTTP_X_API_KEY', '').strip()
+    if not key:
+        return None
+    api_key = ApiKey.objects.filter(key=key).select_related('user').first()
+    return api_key.user if api_key else None
+
+
 @csrf_exempt
 @require_POST
 def import_workout_json(request):
     """
     JSON-импорт тренировки, например из iOS Shortcuts или скрипта.
+
+    Требует заголовок: Authorization: Bearer <твой API-ключ>
+    (ключ смотри в настройках приложения).
 
     Формат тела запроса:
     {
@@ -198,9 +323,17 @@ def import_workout_json(request):
     "count" — число повторений в одном подходе (или другая величина,
     если у упражнения иная единица измерения — секунды/метры/кг).
     "sets" — количество подходов, необязателен, по умолчанию 1.
+    exercise_id должен быть твоим собственным или глобальным упражнением.
     Одно и то же exercise_id можно указывать несколько раз — каждый
     объект в "exercises" станет отдельной записью.
     """
+    user = _authenticate_api_key(request)
+    if not user:
+        return JsonResponse(
+            {'ok': False, 'error': 'Неверный или отсутствующий API-ключ (заголовок Authorization: Bearer <ключ>)'},
+            status=401,
+        )
+
     try:
         payload = json.loads(request.body.decode('utf-8'))
     except (ValueError, UnicodeDecodeError):
@@ -228,7 +361,9 @@ def import_workout_json(request):
     if not isinstance(exercises_payload, list) or not exercises_payload:
         return JsonResponse({'ok': False, 'error': 'Поле exercises должно быть непустым списком'}, status=400)
 
-    session, _ = WorkoutSession.objects.get_or_create(date=date_train)
+    exercise_qs = _visible_exercises(user)
+
+    session, _ = WorkoutSession.objects.get_or_create(date=date_train, owner=user)
     session.time_start = _parse_time(payload.get('time_start')) or session.time_start
     session.time_end = _parse_time(payload.get('time_end')) or session.time_end
     if payload.get('note'):
@@ -238,7 +373,7 @@ def import_workout_json(request):
     created, errors = 0, []
     for i, item in enumerate(exercises_payload):
         exercise_id = item.get('exercise_id')
-        exercise = Exercise.objects.filter(pk=exercise_id).first() if exercise_id else None
+        exercise = exercise_qs.filter(pk=exercise_id).first() if exercise_id else None
         if not exercise:
             errors.append(f'exercises[{i}]: упражнение с id={exercise_id} не найдено')
             continue
@@ -260,18 +395,39 @@ def import_workout_json(request):
     })
 
 
+# --- Настройки (API-ключ) ---------------------------------------------------------
+
+@login_required
+def settings_view(request):
+    api_key = ApiKey.for_user(request.user)
+    if request.method == 'POST' and request.POST.get('action') == 'regenerate':
+        api_key.regenerate()
+        messages.success(request, 'Ключ обновлён — старый больше не действителен')
+        return redirect('tracker:settings')
+    return render(request, 'tracker/settings.html', {
+        'active_tab': 'settings',
+        'api_key': api_key,
+        'import_url': request.build_absolute_uri(reverse('tracker:import_workout_json')),
+    })
+
+
+# --- Напоминания ---------------------------------------------------------
+
+@login_required
 def reminders_view(request):
     """Список и создание напоминаний о тренировках."""
     if request.method == 'POST':
         form = ReminderForm(request.POST)
         if form.is_valid():
-            form.save()
+            reminder = form.save(commit=False)
+            reminder.owner = request.user
+            reminder.save()
             messages.success(request, 'Напоминание создано')
             return redirect('tracker:reminders')
     else:
         form = ReminderForm()
 
-    reminders = Reminder.objects.all()
+    reminders = Reminder.objects.filter(owner=request.user)
     return render(request, 'tracker/reminders.html', {
         'active_tab': 'reminders',
         'form': form,
@@ -279,24 +435,27 @@ def reminders_view(request):
     })
 
 
+@login_required
 @require_POST
 def toggle_reminder(request, pk):
-    reminder = get_object_or_404(Reminder, pk=pk)
+    reminder = get_object_or_404(Reminder, pk=pk, owner=request.user)
     reminder.enabled = not reminder.enabled
     reminder.save(update_fields=['enabled'])
     return redirect('tracker:reminders')
 
 
+@login_required
 @require_POST
 def delete_reminder(request, pk):
-    reminder = get_object_or_404(Reminder, pk=pk)
+    reminder = get_object_or_404(Reminder, pk=pk, owner=request.user)
     reminder.delete()
     messages.success(request, 'Напоминание удалено')
     return redirect('tracker:reminders')
 
 
+@login_required
 def reminders_api(request):
-    """JSON со всеми включёнными напоминаниями — используется JS для проверки на клиенте."""
+    """JSON со всеми включёнными напоминаниями пользователя — используется JS для проверки на клиенте."""
     data = [
         {
             'id': r.id,
@@ -304,11 +463,14 @@ def reminders_api(request):
             'time': r.time.strftime('%H:%M'),
             'days': r.days_list(),
         }
-        for r in Reminder.objects.filter(enabled=True)
+        for r in Reminder.objects.filter(enabled=True, owner=request.user)
     ]
     return JsonResponse({'reminders': data})
 
 
+# --- Тест печати (не связан с тренировками) ---------------------------------------------------------
+
+@login_required
 def typing_view(request):
     """Тест на скорость печати + статистика реального аккаунта MonkeyType."""
     return render(request, 'tracker/typing.html', {
@@ -353,6 +515,7 @@ def _best_of(data):
     return data
 
 
+@login_required
 def typing_stats_api(request):
     """Прокси к личной статистике MonkeyType (сервер хранит ApeKey, фронтенд его не видит)."""
     stats, err_stats = _monkeytype_get('/users/stats')
