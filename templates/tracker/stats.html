@@ -127,15 +127,16 @@
         <label for="{{ past_entry_form.exercise.id_for_label }}">Упражнение</label>
         {{ past_entry_form.exercise }}
       </div>
-      <div class="field text-left" style="display:flex; gap:10px;">
-        <div style="flex:1">
-          <label for="{{ past_entry_form.sets_count.id_for_label }}">Подходов</label>
-          {{ past_entry_form.sets_count }}
+      <div class="field text-left">
+        <label>Подходы (повторения)</label>
+        <div id="past-reps-rows">
+          <div class="reps-row">
+            <span class="reps-row-num">1</span>
+            <input type="number" name="reps" class="ios-input" min="0" placeholder="Повторений">
+            <button type="button" class="icon-btn remove-reps-row" title="Убрать">✕</button>
+          </div>
         </div>
-        <div style="flex:1">
-          <label for="{{ past_entry_form.reps.id_for_label }}">Повторения</label>
-          {{ past_entry_form.reps }}
-        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-add-reps-row" style="margin-top:10px">+ Подход</button>
       </div>
       <div class="field text-left">
         <label for="{{ past_entry_form.rest_seconds.id_for_label }}">Отдых, сек</label>
@@ -145,6 +146,14 @@
     </form>
   </div>
 </div>
+
+<template id="reps-row-template">
+  <div class="reps-row">
+    <span class="reps-row-num"></span>
+    <input type="number" name="reps" class="ios-input" min="0" placeholder="Повторений">
+    <button type="button" class="icon-btn remove-reps-row" title="Убрать">✕</button>
+  </div>
+</template>
 {% endblock %}
 
 {% block extra_scripts %}

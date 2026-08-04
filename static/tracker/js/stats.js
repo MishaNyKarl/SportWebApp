@@ -81,6 +81,44 @@
     });
   }
 
+  // --- Список строк "подход = повторения" в модалке "тренировка из прошлого" ---
+  var repsRows = document.getElementById("past-reps-rows");
+  var btnAddRepsRow = document.getElementById("btn-add-reps-row");
+  var repsRowTemplate = document.getElementById("reps-row-template");
+
+  function renumberRepsRows() {
+    if (!repsRows) return;
+    var rows = repsRows.querySelectorAll(".reps-row");
+    rows.forEach(function (row, i) {
+      var num = row.querySelector(".reps-row-num");
+      if (num) num.textContent = String(i + 1);
+      var removeBtn = row.querySelector(".remove-reps-row");
+      if (removeBtn) removeBtn.style.visibility = rows.length > 1 ? "visible" : "hidden";
+    });
+  }
+
+  if (btnAddRepsRow && repsRows && repsRowTemplate) {
+    btnAddRepsRow.addEventListener("click", function () {
+      var clone = repsRowTemplate.content.cloneNode(true);
+      repsRows.appendChild(clone);
+      renumberRepsRows();
+      var inputs = repsRows.querySelectorAll("input[name=reps]");
+      inputs[inputs.length - 1].focus();
+    });
+  }
+
+  if (repsRows) {
+    repsRows.addEventListener("click", function (e) {
+      var btn = e.target.closest(".remove-reps-row");
+      if (!btn) return;
+      var rows = repsRows.querySelectorAll(".reps-row");
+      if (rows.length <= 1) return;
+      btn.closest(".reps-row").remove();
+      renumberRepsRows();
+    });
+    renumberRepsRows();
+  }
+
   // --- Импорт тренировки из JSON ---
   var btnImport = document.getElementById("btn-json-import");
   var importInput = document.getElementById("json-import-input");

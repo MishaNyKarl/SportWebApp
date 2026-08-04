@@ -14,7 +14,7 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <div class="app">
+  <div class="app {% block app_class %}{% endblock %}">
     {% if request.user.is_authenticated %}
       <a class="profile-bar" href="{% url 'tracker:settings' %}">
         <span class="profile-avatar">{{ request.user.username|slice:":1"|upper }}</span>

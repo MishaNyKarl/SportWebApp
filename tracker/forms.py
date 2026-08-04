@@ -26,7 +26,11 @@ class SetEntryForm(forms.ModelForm):
 
 
 class PastSetEntryForm(forms.ModelForm):
-    """Та же форма подхода, но с явной датой — для добавления тренировки из прошлого."""
+    """
+    Форма добавления тренировки из прошлого. Подходы вводятся как список
+    строк повторений (по одной строке на подход) — см. поле "reps" во
+    view (request.POST.getlist('reps')), а не как число sets_count.
+    """
     date = forms.DateField(
         label='Дата тренировки',
         widget=forms.DateInput(attrs={'class': 'ios-input', 'type': 'date'})
@@ -34,11 +38,9 @@ class PastSetEntryForm(forms.ModelForm):
 
     class Meta:
         model = SetEntry
-        fields = ['exercise', 'sets_count', 'reps', 'rest_seconds']
+        fields = ['exercise', 'rest_seconds']
         widgets = {
             'exercise': forms.Select(attrs={'class': 'ios-input'}),
-            'sets_count': forms.NumberInput(attrs={'class': 'ios-input', 'min': 1}),
-            'reps': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0}),
             'rest_seconds': forms.NumberInput(attrs={'class': 'ios-input', 'min': 0, 'step': 5}),
         }
 

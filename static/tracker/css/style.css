@@ -70,6 +70,23 @@ code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-si
   position: relative;
 }
 
+/* ---------- Десктопная версия страницы "Печать" ---------- */
+@media (min-width: 900px) {
+  .app.app-wide {
+    max-width: 820px;
+    padding-top: calc(48px + var(--safe-top));
+  }
+  .app-wide .page-header h1 { font-size: 44px; }
+  .app-wide .type-area {
+    font-size: 28px;
+    max-height: 200px;
+  }
+  .app-wide .type-live-stats { gap: 56px; margin-bottom: 22px; }
+  .app-wide .type-live-stats .value { font-size: 40px; }
+  .app-wide #type-test-box { padding: 36px 40px; }
+  .app-wide .stat-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
 /* ---------- Профиль (верхняя плашка) ---------- */
 .profile-bar {
   display: flex; align-items: center; gap: 10px;
@@ -376,6 +393,15 @@ select.ios-input {
   padding-right: 40px;
 }
 textarea.ios-input { resize: vertical; font-family: inherit; }
+
+/* ---------- Строки подходов (список повторений) ---------- */
+.reps-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.reps-row-num {
+  width: 22px; text-align: center; flex: none;
+  font-weight: 700; color: var(--text-secondary); font-size: 14px;
+}
+.reps-row .ios-input { flex: 1; }
+.reps-row .remove-reps-row { flex: none; }
 
 /* ---------- API-ключ ---------- */
 .api-key-box {

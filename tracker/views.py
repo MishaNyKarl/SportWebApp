@@ -263,7 +263,7 @@ def stats_view(request):
         'recent_sessions': recent_sessions,
         'exercises': exercise_qs,
         'past_entry_form': PastSetEntryForm(
-            initial={'reps': 0, 'sets_count': 1, 'rest_seconds': 60}, exercise_queryset=exercise_qs
+            initial={'rest_seconds': 60}, exercise_queryset=exercise_qs
         ),
     }
     return render(request, 'tracker/stats.html', context)
@@ -272,18 +272,39 @@ def stats_view(request):
 @login_required
 @require_POST
 def add_past_entry(request):
-    """Добавление тренировки задним числом (иконка тренировки на странице статистики)."""
+    """
+    Добавление тренировки задним числом (иконка тренировки на странице статистики).
+    Подходы приходят списком в POST['reps'] — по одной строке повторений на подход,
+    каждая строка становится отдельным SetEntry (sets_count=1).
+    """
     form = PastSetEntryForm(request.POST, exercise_queryset=_visible_exercises(request.user))
-    if form.is_valid():
+    reps_values = []
+    for raw in request.POST.getlist('reps'):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            reps_values.append(int(raw))
+        except ValueError:
+            continue
+
+    if form.is_valid() and reps_values:
         session, _ = WorkoutSession.objects.get_or_create(
             date=form.cleaned_data['date'], owner=request.user
         )
-        entry = form.save(commit=False)
-        entry.session = session
-        entry.save()
-        messages.success(request, f'Тренировка за {form.cleaned_data["date"].strftime("%d.%m.%Y")} добавлена')
+        exercise = form.cleaned_data['exercise']
+        rest_seconds = form.cleaned_data['rest_seconds']
+        for reps in reps_values:
+            SetEntry.objects.create(
+                session=session, exercise=exercise, sets_count=1,
+                reps=reps, rest_seconds=rest_seconds,
+            )
+        messages.success(
+            request,
+            f'Тренировка за {form.cleaned_data["date"].strftime("%d.%m.%Y")} добавлена: {len(reps_values)} подход(ов)'
+        )
     else:
-        messages.error(request, 'Не удалось добавить тренировку: проверь поля')
+        messages.error(request, 'Не удалось добавить тренировку: проверь упражнение и хотя бы один подход')
     return redirect('tracker:stats')
 
 
