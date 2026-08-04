@@ -69,7 +69,8 @@
     {% else %}
       <div class="empty-state">
         <div class="emoji">🔌</div>
-        <div>ApeKey не настроен на сервере — добавь MONKEYTYPE_APEKEY в .env</div>
+        <div>Аккаунт MonkeyType не подключён</div>
+        <a href="{% url 'tracker:settings' %}" class="btn btn-ghost btn-sm" style="margin-top:12px">Подключить в настройках</a>
       </div>
     {% endif %}
   </div>

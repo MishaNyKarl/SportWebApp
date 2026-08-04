@@ -421,9 +421,23 @@ def import_workout_json(request):
 @login_required
 def settings_view(request):
     api_key = ApiKey.for_user(request.user)
-    if request.method == 'POST' and request.POST.get('action') == 'regenerate':
-        api_key.regenerate()
-        messages.success(request, 'Ключ обновлён — старый больше не действителен')
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'regenerate':
+            api_key.regenerate()
+            messages.success(request, 'Ключ обновлён — старый больше не действителен')
+        elif action == 'connect_monkeytype':
+            apekey = request.POST.get('monkeytype_apekey', '').strip()
+            if apekey:
+                api_key.monkeytype_apekey = apekey
+                api_key.save(update_fields=['monkeytype_apekey'])
+                messages.success(request, 'Аккаунт MonkeyType подключён')
+            else:
+                messages.error(request, 'Вставь ApeKey из monkeytype.com/account/settings#apeKeys')
+        elif action == 'disconnect_monkeytype':
+            api_key.monkeytype_apekey = ''
+            api_key.save(update_fields=['monkeytype_apekey'])
+            messages.success(request, 'Аккаунт MonkeyType отключён')
         return redirect('tracker:settings')
     return render(request, 'tracker/settings.html', {
         'active_tab': 'settings',
@@ -491,20 +505,25 @@ def reminders_api(request):
 
 # --- Тест печати (не связан с тренировками) ---------------------------------------------------------
 
+def _monkeytype_apekey_for(user):
+    """Личный ApeKey пользователя (настройки), либо серверный запасной вариант из .env."""
+    api_key = ApiKey.for_user(user)
+    return api_key.monkeytype_apekey or os.environ.get('MONKEYTYPE_APEKEY') or ''
+
+
 @login_required
 def typing_view(request):
     """Тест на скорость печати + статистика реального аккаунта MonkeyType."""
     return render(request, 'tracker/typing.html', {
         'active_tab': 'typing',
-        'monkeytype_connected': bool(os.environ.get('MONKEYTYPE_APEKEY')),
+        'monkeytype_connected': bool(_monkeytype_apekey_for(request.user)),
     })
 
 
-def _monkeytype_get(path):
-    """GET-запрос к api.monkeytype.com с ApeKey из окружения. Возвращает (data, error)."""
-    apekey = os.environ.get('MONKEYTYPE_APEKEY')
+def _monkeytype_get(path, apekey):
+    """GET-запрос к api.monkeytype.com с переданным ApeKey. Возвращает (data, error)."""
     if not apekey:
-        return None, 'MONKEYTYPE_APEKEY не настроен на сервере'
+        return None, 'Аккаунт MonkeyType не подключён — добавь ApeKey в настройках'
     req = urllib.request.Request(
         f'{MONKEYTYPE_API}{path}',
         headers={
@@ -538,11 +557,12 @@ def _best_of(data):
 
 @login_required
 def typing_stats_api(request):
-    """Прокси к личной статистике MonkeyType (сервер хранит ApeKey, фронтенд его не видит)."""
-    stats, err_stats = _monkeytype_get('/users/stats')
-    streak, err_streak = _monkeytype_get('/users/streak')
-    pb60, err_pb60 = _monkeytype_get('/users/personalBests?mode=time&mode2=60')
-    pb30, err_pb30 = _monkeytype_get('/users/personalBests?mode=time&mode2=30')
+    """Прокси к личной статистике MonkeyType (ApeKey хранится в БД, фронтенд его не видит)."""
+    apekey = _monkeytype_apekey_for(request.user)
+    stats, err_stats = _monkeytype_get('/users/stats', apekey)
+    streak, err_streak = _monkeytype_get('/users/streak', apekey)
+    pb60, err_pb60 = _monkeytype_get('/users/personalBests?mode=time&mode2=60', apekey)
+    pb30, err_pb30 = _monkeytype_get('/users/personalBests?mode=time&mode2=30', apekey)
 
     errors = [e for e in (err_stats, err_streak, err_pb60, err_pb30) if e]
 

@@ -177,6 +177,10 @@ class ApiKey(models.Model):
         settings.AUTH_USER_MODEL, related_name='api_key', on_delete=models.CASCADE, verbose_name='Пользователь'
     )
     key = models.CharField('Ключ', max_length=64, unique=True, editable=False)
+    monkeytype_apekey = models.CharField(
+        'MonkeyType ApeKey', max_length=200, blank=True,
+        help_text='Личный ApeKey с monkeytype.com/account/settings#apeKeys — для показа своей статистики на вкладке «Печать»'
+    )
     created_at = models.DateTimeField('Создано', auto_now_add=True)
 
     class Meta:
